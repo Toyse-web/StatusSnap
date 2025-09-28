@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Status Clearer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>WhatsApp Status Video Optimizer</h1>
+        <p>Optimize your videos for WhatsApp Status to prevent quality loss</p>
+
+        <div class="upload-area" id="uploadArea">
+            <h3>Upload Your Video</h3>
+            <p>Click or drag video here to optimize for your WhatsApp Status</p>
+            <input type="file" id="videoInput" accept="video/*" style="display: none;">
+        </div>
+
+        <div class="preview-container" id="previewContainer">
+            <h3>Video Preview</h3>
+            <video id="videoPreview" controls width="100%"></video>
+            <div class="processing-status" id="processingStatus" style="display: none;">
+                <h4>Processing Video...</h4>
+                <div class="progress-bar">
+                    <div class="progress" id="progressBar"></div>
+                </div>
+                <p id="progressText">Preparing video for WhatsApp...</p>
+            </div>
+            <!-- Video Trimmer Section -->
+             <div class="video-trimmer" id="videoTrimmer">
+                <h4>Select 90-seconds Segment</h4>
+                <div class="preview-time" id="previewTime">
+                    Selected: <span id="startTime">0:00</span> - <span id="endTime">0:00</span>
+                    (<span id="duration">0</span> seconds)
+                </div>
+
+                <div class="timeline-container" id="timelineContainer">
+                    <div class="timeline" id="timeline"></div>
+                    <div class="selection-area" id="selectionArea">
+                        <div class="handle handle-left" id="handleLeft"></div>
+                        <div class="handle handle-right" id="handleRight"></div>
+                    </div>
+                </div>
+
+                <div class="time-display">
+                    <span id="totalStartTime">0:00</span>
+                    <span id="totalEndTime">0:00</span>
+                </div>
+
+                <div class="trim-controls">
+                    <button id="playSegment">Play Selected Segment</button>
+                    <button id="resetSelection">Reset to Full Video</button>
+                </div>
+             </div>
+
+                <div class="quality-options">
+                    <h4>Quality Settings:</h4>
+                    <label>
+                        <input type="radio" name="quality" value="high" checked> High Quality (Larger file)
+                    </label>
+                    <label>
+                        <input type="radio" name="quality" value="balanced">Balanced (Recommended)
+                    </label>
+                    <label>
+                        <input type="radio" name="quality" value="small">Small File (Fast upload)
+                    </label>
+                </div>
+                <button class="optimize-btn" id="optimizeBtn">Optimize Video</button>
+        </div>
+
+        <div class="result" id="result">
+            <h3>Optimization Complete!</h3>
+            <p>Your video is ready for your WhatsApp Status</p>
+            <a id="downloadLink" download="whatsapp_optimized_video.mp4">
+                <button>Download Video</button>
+            </a>
+            <p><strong>Tips:</strong>Save this video to your device and upload to WhatsApp Status</p>
+        </div>
+    </div>
+
+    <script src="optimizer.js"></script>
+</body>
+</html>
