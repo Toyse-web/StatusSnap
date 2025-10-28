@@ -63,7 +63,7 @@ app.post('/process-video', upload.single('video'), async (req, res) => {
                         .size('1080x1920?') // 9:16 aspect ratio for status
                         .videoFilter('pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black')
                         .videoBitrate('1500k')
-                        .outputOption([
+                        .outputOptions([
                             '-crf 23', //For quality and reasonable file size
                             '-preset fast', //Faster encoding
                             '-profile:v baseline', //Better compatibility
@@ -112,12 +112,14 @@ app.post('/process-video', upload.single('video'), async (req, res) => {
                         if (sizeMB > 16) { //WhatsApp has 16MB limit for statuses
                             res.render('index', {
                                 message: `File size (${sizeMB.toFixed(2)}MB) is larde. WhatsApp may compress it further.`,
-                                downloadUrl: `/download/${outputFilename}`
+                                downloadUrl: `/download/${outputFilename}`,
+                                outputFilename: outputFilename
                             });
                         } else {
                             res.render('index', {
                                 message: 'Video processed successfully!',
-                                downloadUrl: `/download/${outputFilename}`
+                                downloadUrl: `/download/${outputFilename}`,
+                                outputFilename: outputFilename
                             });
                         }
                         resolve();
@@ -156,7 +158,8 @@ app.post('/process-video', upload.single('video'), async (req, res) => {
         console.error('Processing error:', err);
         res.render('index', {
             message: 'Error processing video. Try again!',
-            downloadUrl: null
+            downloadUrl: null,
+            outputFilename: null
         });
         await fsp.unlink(inputPath).catch((err) => console.error('Cleanup error:', err));
     }
