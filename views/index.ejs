@@ -12,8 +12,18 @@
         <p>Optimize your videos for WhatsApp status (up to 90 seconds, no blur!)</p>
 
         <form id="uploadForm" enctype="multipart/form-data" method="POST" action="/process-video">
-            <input type="file" name="video" accept="video/*" required>
-            <button type="submit">Process Video</button>
+            <input type="file" name="video" accept="video/*" id="videoInput" required>
+
+            <div class="button-container">
+                <button type="submit" id="processBtn" class="process-btn">Process Video</button>
+
+                <div class="progress-container hidden" id="progressContainer">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">0%</div>
+                </div>
+            </div>
         </form>
 
         <% if (message) { %>
@@ -27,15 +37,70 @@
             <button class="whatsapp-btn" onclick="shareToWhatsApp('<%= downloadUrl %>')">Share to WhatsApp</button>
         <% } %>
 
-        <div id="progress" class="progress"></div>
+        <div id="statusMessage" class="status-message"></div>
     </div>
 
     <script>
         const form = document.getElementById('uploadForm');
         const progress = document.getElementById('progress');
+        const processBtn =document.getElementById("processBtn");
+        const progressContainer = document.getElementById("progressContainer");
+        const progressFill = document.getElementById("progressFill");
+        const progressText = document.getElementById("progressText");
+        const statusMessage = document.getElementById("statusMessage");
+        const videoInput = document.getElementById("videoInput");
 
-        form.addEventListener('submit', () => {
-            progress.textContent = 'Processing... (may take 1-2 minutes)';
+        let progressInterval;
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            if(!videoInput.files[0]) {
+                alert("Please select a video file first!");
+                return;
+            }
+            // Show progress bar, hide button
+            processBtn.classList.add("hidden");
+            progressContainer.classList.remove("hidden");
+            statusMessage.textContent = "Processing...";
+
+            let progress = 0;
+            progressInterval = setInterval(() => {
+                progress += Math.random() * 5;
+                if (progress >= 95) {
+                    progress = 95; //Hold at 95% until actual completion
+                }
+                updateProgress(progress);
+            }, 500);
+
+            // Actually submit the form
+            this.submit();
+        });
+
+         function updateProgress(percent) {
+            progressFill.style.width = percent + "%";
+            progressText.textContent = Math.round(percent) + "%";
+
+            // Update status message based on progress
+            if (percent < 25) {
+                statusMessage.textContent = "Analyzing video...";
+            } else if (percent < 50) {
+                statusMessage.textContent = "Processing video...";
+            } else if (percent < 75) {
+                statusMessage.textContent = "Optimizing for WhatsApp...";
+            } else {
+                statusMessage.textContent = "Finalizing...";
+            }
+         }
+
+        //  Reset form when page loads (in case of refresh)
+        window.addEventListener("load", function() {
+            processBtn.classList.remove("hidden");
+            progressContainer.classList.add("hidden");
+            statusMessage.textContent = "";
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
         });
 
         function shareToWhatsApp(downloadUrl) {
@@ -84,13 +149,16 @@
             // Check if on mobile device
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-            if (isMobile) {
-                // For mobile, try native sharing first
-                nativeShare(downloadUrl);
+            if (isMobile && navigator.share) {
+                navigator.share({
+                    title: "My WhatsApp Status Video",
+                    text: "Check out my optimized video!",
+                    url: absoluteUrl
+                }).catch(err => {
+                    fallbackShare(absoluteUrl);
+                });
             } else {
-                // For desktop, use regular WhatsApp web
-                const whatsappUrl = `https://web.whatsapp.com/send?text=${encodeURIComponent('Check out my optimized video! ' + absoluteUrl)}`;
-                window.open(whatsappUrl, "_blank");
+                fallbackShare(absoluteUrl);
             }
         }
 
