@@ -52,46 +52,26 @@ app.post('/process-video', upload.single('video'), async (req, res) => {
     try {
         await new Promise((resolve, reject) => {
             const command = ffmpeg(inputPath)
-                .duration(90)
-                .videoCodec('libx264')
-                .audioCodec("aac")
-                .format("mp4");
+                .duration(89)
+                .outputOptions([
+                    '-c:v libx264',
+                    '-c:a aac',
+                    '-crf 23',
+                    '-preset ultrafast',
+                    '-profile:v baseline',
+                    '-level 3.1',
+                    '-pix_fmt yuv420p',
+                    '-movflags +faststart'
+                ])
 
-                // WhatsApp HD-compatible settings
-                if (resolution === 'status') {
-                    command
-                        .size('1080x1920?') // 9:16 aspect ratio for status
-                        .videoFilter('pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black')
-                        .videoBitrate('1500k')
-                        .outputOptions([
-                            '-crf 23', //For quality and reasonable file size
-                            '-preset ultrafast', //Faster encoding
-                            '-profile:v baseline', //Better compatibility
-                            '-level 3.1',
-                            '-movflags +faststart', //Enable streaming
-                            '-maxrate 2000k',
-                            '-bufsize 4000k'
-                        ])
-                        .audioBitrate('128k')
-                        .audioChannels(2)
-                        .audioFrequency(44100);
-                } else {
-                    // Original resolution but optimized for WhatsApp
-                    command
-                        .videoBitrate("1000k")
-                        .outputOptions([
-                            '-crf 25',
-                            '-preset ultrafast',
-                            '-profile:v baseline',
-                            '-level 3.1',
-                            '-movflags +faststart',
-                            '-maxrate 1500k',
-                            '-bufsize 3000k'
-                        ])
-                        .audioBitrate("96k")
-                        .audioChannels(2)
-                        .audioFrequency(44100);
+                // Scaling for status resolution
+                if (resolution === "status") {
+                    command.outputOptions([
+                        '-vf scale=1080:1920:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black'
+                    ]);
                 }
+
+                command.format("mp4");
 
             command
                 .on("start", (commandLine) => {
@@ -115,7 +95,7 @@ app.post('/process-video', upload.single('video'), async (req, res) => {
 
                         if (sizeMB > 16) { //WhatsApp has 16MB limit for statuses
                             res.render('index', {
-                                message: `File size (${sizeMB.toFixed(2)}MB) is larde. WhatsApp may compress it further.`,
+                                message: `File size (${sizeMB.toFixed(2)}MB) is large. WhatsApp may compress it further.`,
                                 downloadUrl: `/download/${outputFilename}`,
                                 outputFilename: outputFilename
                             });
