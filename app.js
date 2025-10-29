@@ -65,7 +65,7 @@ app.post('/process-video', upload.single('video'), async (req, res) => {
                         .videoBitrate('1500k')
                         .outputOptions([
                             '-crf 23', //For quality and reasonable file size
-                            '-preset fast', //Faster encoding
+                            '-preset ultrafast', //Faster encoding
                             '-profile:v baseline', //Better compatibility
                             '-level 3.1',
                             '-movflags +faststart', //Enable streaming
@@ -81,7 +81,7 @@ app.post('/process-video', upload.single('video'), async (req, res) => {
                         .videoBitrate("1000k")
                         .outputOptions([
                             '-crf 25',
-                            '-preset fast',
+                            '-preset ultrafast',
                             '-profile:v baseline',
                             '-level 3.1',
                             '-movflags +faststart',
@@ -106,7 +106,11 @@ app.post('/process-video', upload.single('video'), async (req, res) => {
                 })
                 .on('end', async () => {
                     try {
-                        const stats = await fsp.stat(outputPath); // Use fs.promises.stat
+                        await fsp.access(outputPath);
+                        const stats = await fsp.stat(outputPath);
+                        if (stats.size === 0) {
+                            throw new Error("Output file is empty");
+                        }
                         const sizeMB = stats.size / (1024 * 1024);
 
                         if (sizeMB > 16) { //WhatsApp has 16MB limit for statuses
@@ -124,7 +128,7 @@ app.post('/process-video', upload.single('video'), async (req, res) => {
                         }
                         resolve();
                     } catch (err) {
-                        reject(err);
+                        reject(new Error("Output file corrupted"));
                     }
                 })
                 .on('error', (err) => {
@@ -134,7 +138,7 @@ app.post('/process-video', upload.single('video'), async (req, res) => {
                             .duration(90)
                             .videoCodec('libx264')
                             .videoBitrate('8000k')
-                            .outputOptions(['-crf 8', '-preset slow', '-tune animation', '-profile:v high', '-maxrate 9000k', '-bufsize 18000k'])
+                            .outputOptions(['-crf 8', '-preset fast', '-tune animation', '-profile:v high', '-maxrate 9000k', '-bufsize 18000k'])
                             .audioCodec('mp3')
                             .audioBitrate('128k')
                             .format('mp4')
