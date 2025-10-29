@@ -49,9 +49,12 @@ app.post('/process-video', upload.single('video'), async (req, res) => {
     const outputPath = path.join(__dirname, 'output', outputFilename);
     const resolution = req.body.resolution || 'original';
 
+    console.log('Processing video:', { inputPath, outputPath, resolution });
+
     try {
         await new Promise((resolve, reject) => {
-            const command = ffmpeg(inputPath)
+            // Build the command step by step
+            let command = ffmpeg(inputPath)
                 .duration(89)
                 .outputOptions([
                     '-c:v libx264',
@@ -62,90 +65,84 @@ app.post('/process-video', upload.single('video'), async (req, res) => {
                     '-level 3.1',
                     '-pix_fmt yuv420p',
                     '-movflags +faststart'
-                ])
+                ]);
 
-                // Scaling for status resolution
-                if (resolution === "status") {
-                    command.outputOptions([
-                        '-vf scale=1080:1920:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black'
-                    ]);
-                }
+            // Add scaling filter for status resolution
+            if (resolution === "status") {
+                command = command.videoFilters([
+                    'scale=1080:1920:force_original_aspect_ratio=decrease:force_divisible_by=2',
+                    'pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black'
+                ]);
+            }
 
-                command.format("mp4");
+            // Set output format
+            command = command.format('mp4');
 
             command
                 .on("start", (commandLine) => {
-                    console.log("FFmpeg command:", commandLine);
+                    console.log("FFmpeg command started:", commandLine);
                 })
                 .on('progress', (progress) => {
                     if (progress.percent && !isNaN(progress.percent)) {
                         console.log(`Processing: ${progress.percent.toFixed(2)}% done`);
-                    } else {
-                        console.log('Progress: Unavailable or invalid data');
                     }
                 })
                 .on('end', async () => {
+                    console.log('FFmpeg processing completed');
                     try {
+                        // Verify the output file
                         await fsp.access(outputPath);
                         const stats = await fsp.stat(outputPath);
+                        
                         if (stats.size === 0) {
                             throw new Error("Output file is empty");
                         }
-                        const sizeMB = stats.size / (1024 * 1024);
 
-                        if (sizeMB > 16) { //WhatsApp has 16MB limit for statuses
-                            res.render('index', {
-                                message: `File size (${sizeMB.toFixed(2)}MB) is large. WhatsApp may compress it further.`,
-                                downloadUrl: `/download/${outputFilename}`,
-                                outputFilename: outputFilename
-                            });
+                        const sizeMB = stats.size / (1024 * 1024);
+                        console.log(`Output file size: ${sizeMB.toFixed(2)}MB`);
+
+                        let message;
+                        if (sizeMB > 16) {
+                            message = `File size (${sizeMB.toFixed(2)}MB) is large. WhatsApp may compress it further.`;
                         } else {
-                            res.render('index', {
-                                message: 'Video processed successfully!',
-                                downloadUrl: `/download/${outputFilename}`,
-                                outputFilename: outputFilename
-                            });
+                            message = 'Video processed successfully!';
                         }
+
+                        res.render('index', {
+                            message: message,
+                            downloadUrl: `/download/${outputFilename}`,
+                            outputFilename: outputFilename
+                        });
                         resolve();
                     } catch (err) {
-                        reject(new Error("Output file corrupted"));
+                        console.error('File verification error:', err);
+                        reject(new Error("Output file corrupted or missing"));
                     }
                 })
                 .on('error', (err) => {
-                    if (err.message.includes('aac')) {
-                        ffmpeg(inputPath)
-                            .seekInput(0)
-                            .duration(90)
-                            .videoCodec('libx264')
-                            .videoBitrate('8000k')
-                            .outputOptions(['-crf 8', '-preset fast', '-tune animation', '-profile:v high', '-maxrate 9000k', '-bufsize 18000k'])
-                            .audioCodec('mp3')
-                            .audioBitrate('128k')
-                            .format('mp4')
-                            .on('progress', (progress) => {
-                                if (progress.percent && !isNaN(progress.percent)) {
-                                    console.log(`Processing: ${progress.percent.toFixed(2)}% done`);
-                                }
-                            })
-                            .on('end', resolve)
-                            .on('error', reject)
-                            .save(outputPath);
-                    } else {
-                        reject(err);
-                    }
+                    console.error('FFmpeg processing error:', err);
+                    reject(err);
                 })
                 .save(outputPath);
         });
 
-        await fsp.unlink(inputPath).catch((err) => console.error('Cleanup error:', err));
+        // Clean up input file
+        await fsp.unlink(inputPath);
+        console.log('Input file cleaned up');
+
     } catch (err) {
         console.error('Processing error:', err);
+        
+        // Clean up input file even on error
+        await fsp.unlink(inputPath).catch(cleanupErr => 
+            console.error('Cleanup error:', cleanupErr)
+        );
+
         res.render('index', {
-            message: 'Error processing video. Try again!',
+            message: 'Error processing video. Please try a different video.',
             downloadUrl: null,
             outputFilename: null
         });
-        await fsp.unlink(inputPath).catch((err) => console.error('Cleanup error:', err));
     }
 });
 

@@ -139,16 +139,6 @@
          }
         }
 
-        //  Reset form when page loads (in case of refresh)
-        window.addEventListener("load", function() {
-            processBtn.classList.remove("hidden");
-            progressContainer.classList.add("hidden");
-            statusMessage.textContent = "";
-            if (progressInterval) {
-                clearInterval(progressInterval);
-            }
-        });
-
         async function shareToWhatsApp(file, fileUrl, filename) {
             // For mobile devices
             if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
