@@ -146,6 +146,16 @@ app.post('/process-video', upload.single('video'), async (req, res) => {
     }
 });
 
+// Test route to check FFmpeg
+app.get('/test-ffmpeg', (req, res) => {
+    ffmpeg.getAvailableCodecs((err, codecs) => {
+        if (err) {
+            return res.send('FFmpeg error: ' + err.message);
+        }
+        res.send('FFmpeg is working! Available codecs: ' + Object.keys(codecs).length);
+    });
+});
+
 app.get('/download/:filename', (req, res) => {
     const filePath = path.join(__dirname, 'output', req.params.filename);
     res.download(filePath, (err) => {
