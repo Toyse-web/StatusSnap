@@ -52,23 +52,30 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
             let command = ffmpeg(inputPath)
                 .duration(90)
                 .outputOptions([
-                    "-c:v libx264",
-                    "-c:a aac",
-                    "-crf 23",
-                    "-preset ultrafast",
-                    "-profile:v baseline",
-                    "-level 3.1",
-                    "-pix_fmt yuv420p",
-                    "-movflags +faststart"
-                ]);
+        "-c:v libx264",
+        "-c:a aac", 
+        "-b:v 500k",
+        "-crf 32",
+        "-preset fast",
+        "-pix_fmt yuv420p",
+        "-movflags +faststart"
+    ])
+    .fps(15); // Lower framerate
+
+    if (resolution === "status") {
+        // This will scale to fit within 480x854 but maintain aspect ratio
+        command = command.size('480x854');
+    } else {
+        // Keep original size but ensure compatibility
+        command = command.videoFilters([
+            "scale=trunc(iw/2)*2:trunc(ih/2)*2"
+        ]);
+    }
 
             // Apply scaling for status format
             if (resolution === "status") {
-                command = command.videoFilters([
-                    "scale=1080:1920:force_original_aspect_ratio=decrease:force_divisible_by=2",
-                    "pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black"
-                ]);
-            }
+    command = command.size('720x1280'); // Use 720p instead of 1080p
+}
 
             command
                 .format("mp4")
