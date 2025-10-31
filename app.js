@@ -9,6 +9,7 @@ const fsp = require("fs").promises;
 
 // Use static FFmpeg binary (works on Render)
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+console.log("Using ffmpeg binary:", ffmpegInstaller.path);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,7 +25,7 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 // Multer setup
 const upload = multer({
-  dest: "uploads/",
+  dest: "/tmp/",
   limits: { fileSize: 100 * 1024 * 1024 } // 100MB max
 });
 
@@ -41,7 +42,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
 
   const inputPath = req.file.path;
   const outputFilename = `StatusSnap-${Date.now()}.mp4`;
-  const outputPath = path.join(__dirname, "output-" + outputFilename);
+  const outputPath = path.join("/tmp", "temp-" + outputFilename);
 
   try {
     // Encode video
