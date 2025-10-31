@@ -75,7 +75,9 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
     .format("mp4")
     .fps(30)
     .on("start", cmd => console.log("FFmpeg started:", cmd))
-    .on("stderr", line => console.log("FFmpeg log:", line))
+    .on("stderr", line => {
+      fs.appendFileSync(logFile, line + "\n"); // write every line
+    })
     .on("end", () => {
       console.log("FFmpeg processing completed");
       resolve();
