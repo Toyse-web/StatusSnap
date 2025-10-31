@@ -40,20 +40,21 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
     return res.render("index", { message: "Please upload a video!", downloadUrl: null });
   }
 
-  const inputStats = await fsp.stat(inputPath).catch(() => null);
-if (!inputStats || inputStats.size === 0) {
-  throw new Error("Uploaded file is empty or missing in Render /tmp");
-}
-
-
   const inputPath = req.file.path;
   const outputFilename = `StatusSnap-${Date.now()}.mp4`;
   const outputPath = path.join("/tmp", "temp-" + outputFilename);
 
+
   try {
+
+    const inputStats = await fsp.stat(inputPath).catch(() => null);
+    if (!inputStats || inputStats.size === 0) {
+      throw new Error("Uploaded file is empty or missing in Render /tmp");
+    }
+
     // Encode video
     await new Promise((resolve, reject) => {
-  let command = ffmpeg(inputPath)
+    ffmpeg(inputPath)
     .duration(90)
     .outputOptions([
       "-c:v libx264",
