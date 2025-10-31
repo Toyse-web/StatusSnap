@@ -67,10 +67,11 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
       "-c:a aac",
       "-b:a 96k",           // balanced for mobile
       "-movflags +faststart",
-      "-preset faster",   // higher compression quality
-      "-tune film",         // better visual clarity
-      "-vf", "scale=min(720,iw):-2:flags=lanczos,setsar=1" // 720p max, sharp scaling
+      "-preset ultrafast",   // higher compression quality
+      "-tune zerolatency",         // better visual clarity
+      // "-vf", "scale=min(720,iw):-2:flags=lanczos,setsar=1" // 720p max, sharp scaling
     ])
+    .videoFilters("scale=min(720,iw):-2:flags=lanczos,setsar=1")
     .format("mp4")
     .fps(30)
     .on("start", cmd => console.log("FFmpeg started:", cmd))
