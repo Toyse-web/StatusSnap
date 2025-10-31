@@ -56,7 +56,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
         "-c:a aac", 
         "-b:v 500k",
         "-crf 32",
-        "-preset fast",
+        "-preset ultrfast",
         "-pix_fmt yuv420p",
         "-movflags +faststart"
     ])
