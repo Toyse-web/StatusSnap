@@ -41,14 +41,13 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
 
     const inputPath = req.file.path;
     const outputFilename = `StatusSnap-${Date.now()}.mp4`;
+    const outputPath = path.join(__dirname, "temp-" + outputFilename);
 
     try {
-        // Process video to memory buffer instead of disk
-        const videoBuffer = await new Promise((resolve, reject) => {
-            const chunks = [];
 
+        await new Promise((resolve, reject) => {
             let command = ffmpeg(inputPath)
-                .duration(90)
+                .duration(30)
                 .outputOptions([
                     "-c:v libx264",
                     "-c:a aac", 
@@ -74,47 +73,35 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
                     .on("start", (cmd) => console.log("FFmpeg started:", cmd))
                     .on("end", () => {
                         console.log("FFmpeg processing completed");
-                        resolve(Buffer.concat(chunks));
+                        resolve();
                     })
                     .on("error", (err) => {
                         console.log("FFmpeg error:", err);
                         reject(err);
                     })
-                    .pipe();
-
-                    // Collect the output chunks
-                    command.on("data", (chunk) => chunks.push(chunk));
+                    .save(outputPath); //Save to temporary file
                 });
 
-                // Delete input file immediatly after processing
-                await fsp.unlink(inputPath).catch(err => console.error("Input cleanup error:", err));
-
-                // Send success response with download
-                res.set({
-                    "Content-Type": "video/mp4",
-                    "Content-Disposition": `attachment; filename="${outputFilename}"`,
-                    "Content-Length": videoBuffer.length
-                });
-
-                res.render("index", {
-                    message: "Video processed successfully! Download will start automatically.",
-                    downloadUrl: null,
-                    outputFilename: outputFilename
-                });
-
-                // Send the video buffer
-                res.send(videoBuffer);
+                 // Send the file for download
+        res.download(outputPath, outputFilename, async (err) => {
+            // Clean up both files regardless of success
+            await fsp.unlink(inputPath).catch(() => {});
+            await fsp.unlink(outputPath).catch(() => {});
+            
+            if (err) {
+                console.error('Download error:', err);
+            }
+        });
 
     } catch (err) {
         console.error("Processing error:", err);
         // Clean up input file on error
-        await fsp.unlink(inputPath).catch(cleanupErr => 
-            console.error("Cleanup error:", cleanupErr)
-        );
+        await fsp.unlink(inputPath).catch(() => {});
+        await fsp.unlink(outputPath).catch(() => {});
         res.render("index", {
             message: "Error processing video. Please try a different file.",
             downloadUrl: null,
-            outputFilename: outputFilename
+            outputFilename: null
         });
     }
 });
