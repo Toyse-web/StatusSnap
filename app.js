@@ -49,14 +49,20 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
             let command = ffmpeg(inputPath)
                 .duration(90)
                 .outputOptions([
-                    "-c:v libx264",
-                    "-c:a aac", 
-                    "-b:v 128k",
-                    "-crf 23",
-                    "-preset medium",
-                    "-pix_fmt yuv420p",
-                    "-movflags +faststart"
-                ])
+  "-c:v libx264",               // H.264 video codec
+  "-profile:v baseline",        // Ensures compatibility with older devices
+  "-level 3.0",                 // WhatsApp-safe level
+  "-pix_fmt yuv420p",           // Required pixel format
+  "-b:v 1500k",                 // Video bitrate
+  "-maxrate 1500k",
+  "-bufsize 3000k",
+  "-c:a aac",                   // AAC audio codec
+  "-b:a 128k",                  // Audio bitrate
+  "-movflags +faststart"        // Enables mobile streaming
+])
+.format("mp4")
+.fps(30)
+
                 .format("mp4")
                 .fps(30); // Lower framerate
                 
@@ -118,23 +124,19 @@ app.get("/test-ffmpeg", (req, res) => {
     });
 });
 
-// app.get("/download/:filename", async (req, res) => {
-//     const filePath = path.join(__dirname, "output", req.params.filename);
-//     try {
-//         await fsp.access(filePath);
-//         res.download(filePath, req.params.filename, { headers: { "Content-Type": "video/mp4" } }, err => {
-//             if (!err) {
-//                 // Delete after 30 seconds
-//                 setTimeout(() => {
-//                     fsp.unlink(filePath).catch(err => console.error("Cleanup error:", err));
-//                 }, 30000);
-//             }
-//         });
-//     } catch (err) {
-//         console.error("File not found for download:", err);
-//         res.status(404).send("File not found");
-//     }
-// });
+const ffmpegPath = ffmpegInstaller.path;
+const ffprobe = require('ffprobe');
+const ffprobeStatic = require('ffprobe-static');
+
+const isValidVideo = async (filePath) => {
+  try {
+    const info = await ffprobe(filePath, { path: ffprobeStatic.path });
+    return info.streams.some(s => s.codec_type === 'video');
+  } catch (err) {
+    return false;
+  }
+};
+
 
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Server running on port ${PORT}`);
