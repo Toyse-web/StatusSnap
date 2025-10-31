@@ -53,10 +53,11 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
                     "-c:a aac", 
                     "-b:v 500k",
                     "-crf 32",
-                    "-preset ultrfast",
+                    "-preset ultrafast",
                     "-pix_fmt yuv420p",
                     "-movflags +faststart"
                 ])
+                .format("mp4")
                 .fps(15); // Lower framerate
                 
                 if (req.body.resolution === "status") {
