@@ -19,11 +19,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
 // Ensure necessary folders exist
-const dirs = ["uploads", "output"];
-for (const dir of dirs) {
-    const fullPath = path.join(__dirname, dir);
-    if (!fs.existsSync(fullPath)) fs.mkdirSync(fullPath, { recursive: true });
-}
+// const dirs = ["uploads", "output"];
+// for (const dir of dirs) {
+    const uploadsDir = path.join(__dirname, "uploads");
+    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const upload = multer({
     dest: "uploads/",
@@ -42,89 +41,80 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
 
     const inputPath = req.file.path;
     const outputFilename = `StatusSnap-${Date.now()}.mp4`;
-    const outputPath = path.join(__dirname, "output", outputFilename);
-    const resolution = req.body.resolution || "original";
-
-    console.log("Processing video:", { inputPath, outputPath, resolution });
 
     try {
-        await new Promise((resolve, reject) => {
+        // Process video to memory buffer instead of disk
+        const videoBuffer = await new Promise((resolve, reject) => {
+            const chunks = [];
+
             let command = ffmpeg(inputPath)
                 .duration(90)
                 .outputOptions([
-        "-c:v libx264",
-        "-c:a aac", 
-        "-b:v 500k",
-        "-crf 32",
-        "-preset ultrfast",
-        "-pix_fmt yuv420p",
-        "-movflags +faststart"
-    ])
-    .fps(15); // Lower framerate
+                    "-c:v libx264",
+                    "-c:a aac", 
+                    "-b:v 500k",
+                    "-crf 32",
+                    "-preset ultrfast",
+                    "-pix_fmt yuv420p",
+                    "-movflags +faststart"
+                ])
+                .fps(15); // Lower framerate
+                
+                if (req.body.resolution === "status") {
+                    // This will scale to fit within 480x854 but maintain aspect ratio
+                    command = command.size('480x854');
+                } else {
+                    // Keep original size but ensure compatibility
+                    command = command.videoFilters([
+                        "scale=trunc(iw/2)*2:trunc(ih/2)*2"
+                    ]);
+                }
 
-    if (resolution === "status") {
-        // This will scale to fit within 480x854 but maintain aspect ratio
-        command = command.size('480x854');
-    } else {
-        // Keep original size but ensure compatibility
-        command = command.videoFilters([
-            "scale=trunc(iw/2)*2:trunc(ih/2)*2"
-        ]);
-    }
+                command
+                    .on("start", (cmd) => console.log("FFmpeg started:", cmd))
+                    .on("end", () => {
+                        console.log("FFmpeg processing completed");
+                        resolve(Buffer.concat(chunks));
+                    })
+                    .on("error", (err) => {
+                        console.log("FFmpeg error:", err);
+                        reject(err);
+                    })
+                    .pipe();
 
-            // Apply scaling for status format
-            if (resolution === "status") {
-    command = command.size('720x1280'); // Use 720p instead of 1080p
-}
+                    // Collect the output chunks
+                    command.on("data", (chunk) => chunks.push(chunk));
+                });
 
-            command
-                .format("mp4")
-                .on("start", cmd => console.log("FFmpeg started:", cmd))
-                .on("progress", p => {
-                    if (p.percent) console.log(`${p.percent.toFixed(1)}% done`);
-                })
-                .on("end", async () => {
-                    console.log("FFmpeg completed.");
+                // Delete input file immediatly after processing
+                await fsp.unlink(inputPath).catch(err => console.error("Input cleanup error:", err));
 
-                    try {
-                        await fsp.access(outputPath);
-                        const stats = await fsp.stat(outputPath);
-                        if (stats.size === 0) throw new Error("Output file empty");
+                // Send success response with download
+                res.set({
+                    "Content-Type": "video/mp4",
+                    "Content-Disposition": `attachment; filename="${outputFilename}"`,
+                    "Content-Length": videoBuffer.length
+                });
 
-                        const sizeMB = stats.size / (1024 * 1024);
-                        console.log(`Output size: ${sizeMB.toFixed(2)}MB`);
+                res.render("index", {
+                    message: "Video processed successfully! Download will start automatically.",
+                    downloadUrl: null,
+                    outputFilename: outputFilename
+                });
 
-                        const message =
-                            sizeMB > 16
-                                ? `File processed (${sizeMB.toFixed(2)}MB). WhatsApp may compress it further.`
-                                : "Video processed successfully!";
-
-                        res.render("index", {
-                            message,
-                            downloadUrl: `/download/${outputFilename}`
-                        });
-                        resolve();
-                    } catch (err) {
-                        reject(new Error("Output file missing or corrupted: " + err.message));
-                    }
-                })
-                .on("error", err => {
-                    console.error("FFmpeg error:", err);
-                    reject(err);
-                })
-                .save(outputPath);
-        });
-
-        // Clean up input file
-        await fsp.unlink(inputPath).catch(() => {});
-        console.log("Input file cleaned up");
+                // Send the video buffer
+                res.send(videoBuffer);
 
     } catch (err) {
         console.error("Processing error:", err);
-        await fsp.unlink(inputPath).catch(() => {});
+        // Clean up input file on error
+        await fsp.unlink(inputPath).catch(cleanupErr => 
+            console.error("Cleanup error:", cleanupErr)
+        );
         res.render("index", {
             message: "Error processing video. Please try a different file.",
-            downloadUrl: null
+            downloadUrl: null,
+            outputFilename: outputFilename
         });
     }
 });
@@ -136,23 +126,23 @@ app.get("/test-ffmpeg", (req, res) => {
     });
 });
 
-app.get("/download/:filename", async (req, res) => {
-    const filePath = path.join(__dirname, "output", req.params.filename);
-    try {
-        await fsp.access(filePath);
-        res.download(filePath, req.params.filename, { headers: { "Content-Type": "video/mp4" } }, err => {
-            if (!err) {
-                // Delete after 30 seconds
-                setTimeout(() => {
-                    fsp.unlink(filePath).catch(err => console.error("Cleanup error:", err));
-                }, 30000);
-            }
-        });
-    } catch (err) {
-        console.error("File not found for download:", err);
-        res.status(404).send("File not found");
-    }
-});
+// app.get("/download/:filename", async (req, res) => {
+//     const filePath = path.join(__dirname, "output", req.params.filename);
+//     try {
+//         await fsp.access(filePath);
+//         res.download(filePath, req.params.filename, { headers: { "Content-Type": "video/mp4" } }, err => {
+//             if (!err) {
+//                 // Delete after 30 seconds
+//                 setTimeout(() => {
+//                     fsp.unlink(filePath).catch(err => console.error("Cleanup error:", err));
+//                 }, 30000);
+//             }
+//         });
+//     } catch (err) {
+//         console.error("File not found for download:", err);
+//         res.status(404).send("File not found");
+//     }
+// });
 
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Server running on port ${PORT}`);
