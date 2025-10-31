@@ -40,6 +40,12 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
     return res.render("index", { message: "Please upload a video!", downloadUrl: null });
   }
 
+  const inputStats = await fsp.stat(inputPath).catch(() => null);
+if (!inputStats || inputStats.size === 0) {
+  throw new Error("Uploaded file is empty or missing in Render /tmp");
+}
+
+
   const inputPath = req.file.path;
   const outputFilename = `StatusSnap-${Date.now()}.mp4`;
   const outputPath = path.join("/tmp", "temp-" + outputFilename);
@@ -60,13 +66,14 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
       "-c:a aac",
       "-b:a 96k",           // balanced for mobile
       "-movflags +faststart",
-      "-preset veryslow",   // higher compression quality
+      "-preset faster",   // higher compression quality
       "-tune film",         // better visual clarity
-      "-vf scale='min(720,iw)':-2:flags=lanczos,setsar=1" // 720p max, sharp scaling
+      "-vf", "scale=min(720,iw):-2:flags=lanczos,setsar=1" // 720p max, sharp scaling
     ])
     .format("mp4")
     .fps(30)
     .on("start", cmd => console.log("FFmpeg started:", cmd))
+    .on("stderr", line => console.log("FFmpeg log:", line))
     .on("end", () => {
       console.log("FFmpeg processing completed");
       resolve();
