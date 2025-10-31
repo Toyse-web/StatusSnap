@@ -51,38 +51,42 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
                 .outputOptions([
                     "-c:v libx264",
                     "-c:a aac", 
-                    "-b:v 500k",
-                    "-crf 32",
-                    "-preset ultrafast",
+                    "-b:v 128k",
+                    "-crf 23",
+                    "-preset medium",
                     "-pix_fmt yuv420p",
                     "-movflags +faststart"
                 ])
                 .format("mp4")
-                .fps(15); // Lower framerate
+                .fps(30); // Lower framerate
                 
                 if (req.body.resolution === "status") {
-                    // This will scale to fit within 480x854 but maintain aspect ratio
-                    command = command.size('480x854');
-                } else {
-                    // Keep original size but ensure compatibility
-                    command = command.videoFilters([
-                        "scale=trunc(iw/2)*2:trunc(ih/2)*2"
-                    ]);
-                }
+  command = command.videoFilters([
+    "scale='min(720,iw)':-2", // Max width 720, maintain aspect ratio
+    "pad=ceil(iw/2)*2:ceil(ih/2)*2" // Ensure even dimensions
+  ]);
+} else {
+  command = command.videoFilters([
+    "scale=trunc(iw/2)*2:trunc(ih/2)*2"
+  ]);
+}
 
                 command
-                    .on("start", (cmd) => console.log("FFmpeg started:", cmd))
-                    .on("end", () => {
-                        console.log("FFmpeg processing completed");
-                        resolve();
-                    })
-                    .on("error", (err) => {
-                        console.log("FFmpeg error:", err);
-                        reject(err);
-                    })
-                    .save(outputPath); //Save to temporary file
-                });
+    .on("start", cmd => console.log("FFmpeg started:", cmd))
+    .on("end", () => {
+      console.log("FFmpeg processing completed");
+      resolve();
+    })
+    .on("error", err => {
+      console.log("FFmpeg error:", err);
+      reject(err);
+    })
+    .save(outputPath);
+});
 
+if (!fs.existsSync(outputPath)) {
+  throw new Error("Processed video not found");
+}
                  // Send the file for download
         res.download(outputPath, outputFilename, async (err) => {
             // Clean up both files regardless of success
