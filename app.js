@@ -47,7 +47,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
 
         await new Promise((resolve, reject) => {
             let command = ffmpeg(inputPath)
-                .duration(30)
+                .duration(90)
                 .outputOptions([
                     "-c:v libx264",
                     "-c:a aac", 
