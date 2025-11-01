@@ -62,15 +62,18 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
       "-level 3.1",
       "-pix_fmt yuv420p",
       "-b:v 1500k",         // WhatsApp sweet spot bitrate
-      "-maxrate 1200k",
-      "-bufsize 2400k",
+      "-maxrate 1500k",
+      "-bufsize 3000k",
       "-c:a aac",
+      "-ac 2", //Force stereo (avoids AAC mono bugs)
       "-b:a 96k",           // balanced for mobile
       "-movflags +faststart",
       "-preset medium",   // higher compression quality
       "-tune film",
+      "-fflags +genpts",
       "-avoid_negative_ts make_zero",
-      "-fflags +genpts"
+      "-max_muxing_queue_size 1024",
+      "-shortest", // stops when shortest stream (audio/video) ends
       // "-vf", "scale=min(720,iw):-2:flags=lanczos,setsar=1" // 720p max, sharp scaling
     ])
     .videoFilters("scale=min(720,iw):-2:flags=lanczos,setsar=1")
