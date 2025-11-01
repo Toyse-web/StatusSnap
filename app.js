@@ -61,14 +61,16 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
       "-profile:v main",
       "-level 3.1",
       "-pix_fmt yuv420p",
-      "-b:v 1200k",         // WhatsApp sweet spot bitrate
+      "-b:v 1500k",         // WhatsApp sweet spot bitrate
       "-maxrate 1200k",
       "-bufsize 2400k",
       "-c:a aac",
       "-b:a 96k",           // balanced for mobile
       "-movflags +faststart",
-      "-preset ultrafast",   // higher compression quality
-      "-tune zerolatency",         // better visual clarity
+      "-preset medium",   // higher compression quality
+      "-tune film",
+      "-avoid_negative_ts make_zero",
+      "-fflags +genpts"
       // "-vf", "scale=min(720,iw):-2:flags=lanczos,setsar=1" // 720p max, sharp scaling
     ])
     .videoFilters("scale=min(720,iw):-2:flags=lanczos,setsar=1")
@@ -104,7 +106,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
   } catch (err) {
     console.error("Processing error:", err);
 
-     // ✅ Print FFmpeg log contents
+    // Print FFmpeg log contents
     const debug = await fsp.readFile(logFile, "utf8").catch(() => "No log found");
     console.log("==== FULL FFmpeg LOG START ====");
     console.log(debug);
@@ -112,7 +114,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
 
     await fsp.unlink(inputPath).catch(() => {});
     await fsp.unlink(outputPath).catch(() => {});
-    
+
     res.render("index", {
       message: "Error processing video. Please try a different file.",
       downloadUrl: null
