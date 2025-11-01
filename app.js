@@ -57,28 +57,29 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
     ffmpeg(inputPath)
     .duration(90)
     .outputOptions([
+     "-r 30",                            // constant 30 fps
       "-c:v libx264",
       "-profile:v main",
       "-level 3.1",
       "-pix_fmt yuv420p",
-      "-b:v 1500k",         // WhatsApp sweet spot bitrate
+      "-b:v 1500k",
       "-maxrate 1500k",
       "-bufsize 3000k",
+      "-vf", "scale='min(iw,720):-2:flags=lanczos,setsar=1'",
       "-c:a aac",
-      "-ac 2", //Force stereo (avoids AAC mono bugs)
+      "-ac 2",
       "-ar 44100",
-      "-b:a 96k",           // balanced for mobile
+      "-b:a 96k",
       "-movflags +faststart",
-      "-vsync 1",
-      "-preset ultrafast",
+      "-preset veryfast",
       "-tune film",
       "-fflags +genpts",
       "-avoid_negative_ts make_zero",
       "-max_muxing_queue_size 1024",
-      "-shortest", // stops when shortest stream (audio/video) ends
-      // "-vf", "scale=min(720,iw):-2:flags=lanczos,setsar=1" // 720p max, sharp scaling
+      "-map 0:v:0",
+      "-map 0:a:0?",
+      "-t 90"
     ])
-    .videoFilters("scale=min(720\\,iw):-2:flags=lanczos,setsar=1")
     .format("mp4")
     .fps(30)
     .on("start", cmd => console.log("FFmpeg started:", cmd))
