@@ -76,7 +76,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
       "-avoid_negative_ts make_zero",
       "-max_muxing_queue_size 1024",
       "-shortest", // stops when shortest stream (audio/video) ends
-      "-vf", "scale=min(720,iw):-2:flags=lanczos,setsar=1" // 720p max, sharp scaling
+      // "-vf", "scale=min(720,iw):-2:flags=lanczos,setsar=1" // 720p max, sharp scaling
     ])
     .videoFilters("scale=min(720\\,iw):-2:flags=lanczos,setsar=1")
     .format("mp4")
