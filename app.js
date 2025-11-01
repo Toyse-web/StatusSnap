@@ -76,10 +76,11 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
       "-shortest", // stops when shortest stream (audio/video) ends
       // "-vf", "scale=min(720,iw):-2:flags=lanczos,setsar=1" // 720p max, sharp scaling
     ])
-    .videoFilters("scale=min(720,iw):-2:flags=lanczos,setsar=1")
+    .videoFilters("scale=min(720\\,iw):-2:flags=lanczos,setsar=1")
     .format("mp4")
     .fps(30)
     .on("start", cmd => console.log("FFmpeg started:", cmd))
+    .on("codecData", data => console.log("Input codec info:", data))
     .on("stderr", line => {
       fs.appendFileSync(logFile, line + "\n"); // write every line
     })
