@@ -55,26 +55,14 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
         .duration(90)
         .videoFilters("scale=-2:720:flags=lanczos,setsar=1")
         .outputOptions([
-          "-r", "30",
-          "-c:v", "libx264",
-          "-profile:v", "baseline",
-          "-level", "3.0",
-          "-pix_fmt", "yuv420p",
-          "-b:v", "1500k",
-          "-maxrate", "1500k",
-          "-bufsize", "3000k",
-          "-filter:a", "aresample=async=1:min_hard_comp=0.100000:first_pts=0",
-          "-c:a", "aac",
-          "-ac", "2",
-          "-ar", "44100",
-          "-b:a", "96k",
-          "-preset", "veryfast",
-          "-movflags", "+faststart",
-          "-tune", "film",
-          "-shortest",
-          "-max_muxing_queue_size 9999",
-          "-avoid_negative_ts", "make_zero"
-        ])
+        "-c:v libx264",
+        "-c:a aac", 
+        "-b:v 500k",
+        "-crf 32",
+        "-preset ultrafast",
+        "-pix_fmt yuv420p",
+        "-movflags +faststart"
+      ])
         .format("mp4")
         .fps(30)
         .on("start", cmd => console.log("FFmpeg started:", cmd))
