@@ -65,7 +65,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
       "-b:v 1500k",
       "-maxrate 1500k",
       "-bufsize 3000k",
-      "-vf", "scale='min(iw,720):-2:flags=lanczos,setsar=1'",
+      "-vf", "scale=-2:720:flags=lanczos,setsar=1",
       "-c:a aac",
       "-ac 2",
       "-ar 44100",
