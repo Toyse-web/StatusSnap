@@ -63,6 +63,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
           "-b:v", "1500k",
           "-maxrate", "1500k",
           "-bufsize", "3000k",
+          "-filter:a", "aresample=async=1:min_hard_comp=0.100000:first_pts=0",
           "-c:a", "aac",
           "-ac", "2",
           "-ar", "44100",
@@ -71,6 +72,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
           "-movflags", "+faststart",
           "-tune", "film",
           "-shortest",
+          "-max_muxing_queue_size 9999",
           "-avoid_negative_ts", "make_zero"
         ])
         .format("mp4")
