@@ -80,7 +80,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
       "-map", "0:a:0?",
       "-shortest"
     ])
-    .format("mp4")
+    .format("mov")
     .fps(30)
     .on("start", cmd => console.log("FFmpeg started:", cmd))
     .on("codecData", data => console.log("Input codec info:", data))
