@@ -57,31 +57,25 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
     ffmpeg(inputPath)
     .duration(90)
     .outputOptions([
-     "-r 30",                            // constant 30 fps
       "-c:v libx264",
-      "-profile:v main",
-      "-level 3.1",
+      "-profile:v baseline",
+      "-level 3.0",
       "-pix_fmt yuv420p",
-      "-b:v 1500k",
-      "-maxrate 1500k",
-      "-bufsize 3000k",
-      "-vf", "scale=-2:720:flags=lanczos,setsar=1",
+      "-b:v 2500k",
+      "-maxrate 2500k",
+      "-bufsize 5000k",
       "-c:a aac",
+      "-b:a 128k",
       "-ac 2",
       "-ar 44100",
-      "-b:a 96k",
-      "-movflags +faststart",
-      "-preset veryfast",
-      "-tune film",
-      "-fflags +genpts",
-      "-avoid_negative_ts make_zero",
-      "-max_muxing_queue_size 1024",
-      "-map 0:v:0",
-      "-map 0:a:0?",
-      "-t 90"
+      "movflags +faststart"
     ])
     .format("mp4")
     .fps(30)
+    .videoFilters([
+      "scale='min(720,iw)':-2",
+      "pad=ceil(iw/2)*2:ceil(ih/2)*2"
+    ])
     .on("start", cmd => console.log("FFmpeg started:", cmd))
     .on("codecData", data => console.log("Input codec info:", data))
     .on("stderr", line => {
