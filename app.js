@@ -56,26 +56,32 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
     await new Promise((resolve, reject) => {
     ffmpeg(inputPath)
     .duration(90)
+    .videoFilters("scale=-2:720:flags=lanczos,setsar=1")
     .outputOptions([
-      "-c:v libx264",
-      "-profile:v baseline",
-      "-level 3.0",
-      "-pix_fmt yuv420p",
-      "-b:v 2500k",
-      "-maxrate 2500k",
-      "-bufsize 5000k",
-      "-c:a aac",
-      "-b:a 128k",
-      "-ac 2",
-      "-ar 44100",
-      "movflags +faststart"
+      "-r", "30",
+      "-c:v", "libx264",
+      "-profile:v", "main",
+      "-level", "3.1",
+      "-pix_fmt", "yuv420p",
+      "-b:v", "1500k",
+      "-maxrate", "1500k",
+      "-bufsize", "3000k",
+      "-c:a", "aac",
+      "-ac", "2",
+      "-ar", "44100",
+      "-b:a", "96k",
+      "-movflags", "+faststart",   // correct syntax
+      "-preset", "veryfast",
+      "-tune", "film",
+      "-fflags", "+genpts",
+      "-avoid_negative_ts", "make_zero",
+      "-max_muxing_queue_size", "1024",
+      "-map", "0:v:0",
+      "-map", "0:a:0?",
+      "-shortest"
     ])
     .format("mp4")
     .fps(30)
-    .videoFilters([
-      "scale='min(720,iw)':-2",
-      "pad=ceil(iw/2)*2:ceil(ih/2)*2"
-    ])
     .on("start", cmd => console.log("FFmpeg started:", cmd))
     .on("codecData", data => console.log("Input codec info:", data))
     .on("stderr", line => {
