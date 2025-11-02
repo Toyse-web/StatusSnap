@@ -60,8 +60,8 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
     .outputOptions([
       "-r", "30",
       "-c:v", "libx264",
-      "-profile:v", "main",
-      "-level", "3.1",
+      "-profile:v", "baseline",
+      "-level", "3.0",
       "-pix_fmt", "yuv420p",
       "-b:v", "1500k",
       "-maxrate", "1500k",
@@ -70,7 +70,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
       "-ac", "2",
       "-ar", "44100",
       "-b:a", "96k",
-      "-movflags", "+faststart",   // correct syntax
+      "-movflags", "+faststart+frag_keyframe+empty_moov",   // correct syntax
       "-preset", "veryfast",
       "-tune", "film",
       "-fflags", "+genpts",
