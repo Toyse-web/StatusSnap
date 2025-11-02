@@ -6,7 +6,15 @@ const ffmpegInstaller = require("@ffmpeg-installer/ffmpeg");
 const path = require("path");
 const fs = require("fs");
 const fsp = require("fs").promises;
-const crypto = require("crypto");
+const cloudinary = require("cloudinary").v2;
+
+// configure with env vars
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true
+});
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 console.log("Using ffmpeg binary:", ffmpegInstaller.path);
@@ -39,64 +47,48 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
     return res.render("index", { message: "Please upload a video!", downloadUrl: null });
   }
 
-  const inputPath = req.file.path;
-  const baseName = `StatusSnap-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
-  const tempPath = path.join(uploadsDir, "temp-" + baseName + ".mp4");
-  const finalPath = path.join(uploadsDir, baseName + ".mp4");
-  const logFile = path.join(uploadsDir, "ffmpeg-debug.log");
+  const localPath = req.file.path;
 
   try {
-    const inputStats = await fsp.stat(inputPath);
-    if (!inputStats || inputStats.size === 0) throw new Error("Uploaded file is empty");
-
-    // Step 1: Encode (safe H.264 baseline)
-    await new Promise((resolve, reject) => {
-      ffmpeg(inputPath)
-        .duration(90)
-        .videoFilters("scale=-2:720:flags=lanczos,setsar=1")
-        .outputOptions([
-        "-c:v libx264",
-        "-c:a aac", 
-        "-b:v 500k",
-        "-crf 32",
-        "-preset ultrafast",
-        "-pix_fmt yuv420p",
-        "-movflags +faststart"
-      ])
-        .format("mp4")
-        .fps(30)
-        .on("start", cmd => console.log("FFmpeg started:", cmd))
-        .on("stderr", line => fs.appendFileSync(logFile, line + "\n"))
-        .on("end", () => {
-          console.log("FFmpeg processing completed ->", tempPath);
-          resolve();
-        })
-        .on("error", err => reject(err))
-        .save(tempPath);
+    // Upload & create eager (transcoded) version so result is available immediately
+    const result = await cloudinary.uploader.upload(localPath, {
+      resource_type: "video",
+      folder: "statussnap",     // optional organizational folder
+      // Eager transformations are generated during upload and returned in the result
+      eager: [
+        {
+          // WhatsApp-friendly transformation:
+          width: 720,
+          crop: "limit",            // limit to 720 while preserving aspect ratio
+          format: "mp4",
+          video_codec: "h264",
+          audio_codec: "aac",
+          // quality: "auto" or "auto:best" (Cloudinary chooses optimal bitrate)
+          // If you prefer fixed bitrate, you can try bit_rate: "1200k"
+          quality: "auto:good"
+        }
+      ],
+      eager_async: false, // wait for eager transform before returning (default false)
+      invalidate: true
     });
 
-    // Step 2: Move final file to safe location
-    await fsp.rename(tempPath, finalPath);
+    // the transformed asset (first eager) is typically in result.eager[0].secure_url
+    const downloadUrl = (result.eager && result.eager[0] && result.eager[0].secure_url) || result.secure_url;
 
-    // Step 3: Respond with a download link
-    res.download(finalPath, path.basename(finalPath), async (err) => {
-      if (err) console.error("Download error:", err);
-      await fsp.unlink(inputPath).catch(() => {});
-      // Delay cleanup to ensure browser fully downloads before deletion
-      setTimeout(() => fsp.unlink(finalPath).catch(() => {}), 10000);
+    // cleanup local file
+    await fsp.unlink(localPath).catch(()=>{});
+
+    // render page with download link (you can also redirect or return JSON)
+    return res.render("index", {
+      message: "Video processed successfully!",
+      downloadUrl
     });
 
   } catch (err) {
-    console.error("Processing error:", err);
-    const debug = await fsp.readFile(logFile, "utf8").catch(() => "No log found");
-    console.log("==== FFmpeg LOG START ====\n" + debug + "\n==== LOG END ====");
-
-    await fsp.unlink(inputPath).catch(() => {});
-    await fsp.unlink(tempPath).catch(() => {});
-    await fsp.unlink(finalPath).catch(() => {});
-
-    res.render("index", {
-      message: "Error processing video. Please try again.",
+    console.error("Cloudinary upload/transform error:", err);
+    await fsp.unlink(localPath).catch(()=>{});
+    return res.render("index", {
+      message: "Error processing video via Cloudinary. Try again.",
       downloadUrl: null
     });
   }
