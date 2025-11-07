@@ -64,10 +64,10 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
           crop: "limit",            // limit to 720 while preserving aspect ratio
           format: "mp4",
           transformation: [
-            {fetch_format: "mp4"},
             {video_codec: "auto"},
+            {audio_codec: "aac"},
             {quality: "auto"},
-            {flags: "faststart"}
+            {fetch_format: "mp4"}
           ]
         }
       ],
@@ -81,7 +81,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
     // cleanup local file
     await fsp.unlink(localPath).catch(()=>{});
 
-    // render page with download link (you can also redirect or return JSON)
+    // render page with download link
     return res.render("index", {
       message: "Video processed successfully!",
       downloadUrl
