@@ -53,7 +53,9 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
     // Upload & create eager (transcoded) version so result is available immediately
     const result = await cloudinary.uploader.upload(localPath, {
       resource_type: "video",
-      folder: "statussnap",     // optional organizational folder
+      folder: "statusSnap",
+      public_id: `status_${Date.now()}`,
+      overwrite: true,
       // Eager transformations are generated during upload and returned in the result
       eager: [
         {
@@ -61,11 +63,12 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
           width: 720,
           crop: "limit",            // limit to 720 while preserving aspect ratio
           format: "mp4",
-          video_codec: "h264",
-          audio_codec: "aac",
-          // quality: "auto" or "auto:best" (Cloudinary chooses optimal bitrate)
-          // If you prefer fixed bitrate, you can try bit_rate: "1200k"
-          quality: "auto:good"
+          transformation: [
+            {fetch_format: "mp4"},
+            {video_codec: "auto"},
+            {quality: "auto"},
+            {flags: "faststart"}
+          ]
         }
       ],
       eager_async: false, // wait for eager transform before returning (default false)
