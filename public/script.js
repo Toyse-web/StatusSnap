@@ -260,32 +260,46 @@ function pointerDownHandler(e) {
 }
 
 function pointerMoveHandler(e) {
-  if (!dragging) return;
-  const pct = percentFromPointer(e.clientX);
-  if (dragging === 'start') {
-    startPercent = Math.min(pct, endPercent - 0.01);
-    // ensure 90s max
-    if ((endPercent - startPercent) * duration > 90) startPercent = endPercent - 90 / duration;
-    // update video preview to start position for instant feedback
-    video.currentTime = startPercent * duration;
-    playheadPercent = startPercent;
-  } else if (dragging === 'end') {
-    endPercent = Math.max(pct, startPercent + 0.01);
-    if ((endPercent - startPercent) * duration > 90) endPercent = startPercent + 90 / duration;
-    // update preview to end (so user sees end frame)
-    video.currentTime = Math.min(endPercent * duration, duration - 0.05);
-    playheadPercent = Math.min(playheadPercent, endPercent);
-  } else if (dragging === 'playhead') {
-  playheadPercent = Math.min(Math.max(pct, startPercent), endPercent);
-  // pause while dragging for smoother preview
-  if (!video.paused) video.pause();
-  clearTimeout(window._scrubTimeout);
-window._scrubTimeout = setTimeout(() => {
-  video.currentTime = playheadPercent * duration;
-}, 30);
+    if (!dragging) return;
+    const pct = percentFromPointer(e.clientX);
 
-  updateOverlay();
-}
+    if (dragging === "start") {
+        startPercent = Math.min(pct, endPercent - 0.01);
+
+        // Ensure max 90 seconds
+        if ((endPercent - startPercent) * duration > 90) {
+            startPercent = endPercent - 90 / duration;
+        }
+
+        // Always kepp playhead at start (anchor behaviour)
+        playheadPercent = startPercent;
+
+        // Show perview at start position for feedback
+        video.currentTime = startPercent * duration;
+    }  else if (dragging === 'end') {
+    endPercent = Math.max(pct, startPercent + 0.01);
+
+    // Enforce 90s max
+    if ((endPercent - startPercent) * duration > 90) {
+      endPercent = startPercent + 90 / duration;
+    }
+
+    // If playhead accidentally goes beyond new end, bring it back to start
+    if (playheadPercent > endPercent) {
+      playheadPercent = startPercent;
+      video.currentTime = startPercent * duration;
+    }
+  } else if (dragging === 'playhead') {
+    playheadPercent = Math.min(Math.max(pct, startPercent), endPercent);
+
+    if (!video.paused) video.pause();
+
+    clearTimeout(window._scrubTimeout);
+    window._scrubTimeout = setTimeout(() => {
+      video.currentTime = playheadPercent * duration;
+    }, 30);
+  }
+
   updateOverlay();
   updateTimeDisplays();
 }
