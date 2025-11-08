@@ -372,23 +372,40 @@ document.addEventListener('pointerup', (e) => {
 
 // ---------- Play behavior: play only inside selection ----------
 video.addEventListener('play', () => {
-  // if playing and currentTime < selection start, jump to start
   const selStart = startPercent * duration;
-  if (video.currentTime < selStart || video.currentTime > endPercent * duration) {
+  const selEnd = endPercent * duration;
+
+  // If user hits play but playhead is past the end, reset to start
+  if (video.currentTime >= selEnd - 0.05) {
     video.currentTime = selStart;
   }
 });
 
 video.addEventListener('timeupdate', () => {
-  // keep playhead synced
-  playheadPercent = video.currentTime / duration;
-  // if passed end -> pause and keep at end (WhatsApp stops at end)
+  const selStart = startPercent * duration;
   const selEnd = endPercent * duration;
+
+  // keep playhead synced with currentTime
+  playheadPercent = video.currentTime / duration;
+
+  // if passed end -> pause and auto-return to start (like WhatsApp)
   if (video.currentTime >= selEnd - 0.05 && !video.paused) {
     video.pause();
-    // clamp to slightly before end so UI shows inside selection
-    video.currentTime = Math.max(startPercent * duration, selEnd - 0.05);
+
+    // Smooth slide back animation for visual polish
+    const w = track.clientWidth;
+    const playheadEl = playhead;
+    playheadEl.style.transition = 'left 0.25s ease-out';
+    playheadPercent = startPercent;
+    video.currentTime = selStart;
+    updateOverlay();
+
+    // Remove transition after animation so dragging stays instant
+    setTimeout(() => {
+      playheadEl.style.transition = '';
+    }, 300);
   }
+
   updateOverlay();
 });
 
