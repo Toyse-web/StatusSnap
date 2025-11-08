@@ -253,8 +253,6 @@ footer {
 }
 
 #startHandle, #endHandle, #playhead {
-  width: 16px;
-  height: 48px;
   border-radius: 4px;
   background-color: #25d366;
   cursor: pointer;
