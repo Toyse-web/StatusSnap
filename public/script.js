@@ -249,6 +249,58 @@ function percentFromPointer(clientX) {
   return x / rect.width;
 }
 
+function startDrag(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const target = e.target;
+
+  if (target === startHandle) dragging = "start";
+  else if (target === endHandle) dragging = "end";
+  else if (target === playhead) dragging = "playhead";
+
+  target.setPointerCapture?.(e.pointerId);
+  document.body.style.touchAction = "none"; // Prevent scrolling while dragging
+}
+
+function moveDrag(e) {
+  if (!dragging) return;
+  const pct = percentFromPointer(e.clientX);
+  const selLen = endPercent - startPercent;
+
+    if (dragging === 'start') {
+    startPercent = Math.min(pct, endPercent - 0.01);
+    if ((endPercent - startPercent) * duration > 90) startPercent = endPercent - 90 / duration;
+    playheadPercent = startPercent;
+    video.currentTime = startPercent * duration;
+  } else if (dragging === 'end') {
+    endPercent = Math.max(pct, startPercent + 0.01);
+    if ((endPercent - startPercent) * duration > 90) endPercent = startPercent + 90 / duration;
+    if (playheadPercent > endPercent) playheadPercent = endPercent;
+    video.currentTime = endPercent * duration;
+  } else if (dragging === 'playhead') {
+    playheadPercent = Math.min(Math.max(pct, startPercent), endPercent);
+    video.pause();
+    video.currentTime = playheadPercent * duration;
+  }
+
+    updateOverlay();
+  updateTimeDisplays();
+}
+
+function stopDrag(e) {
+  dragging = null;
+  document.body.style.touchAction = 'auto';
+}
+
+
+// attach all
+[startHandle, endHandle, playhead].forEach(el => {
+  el.addEventListener('pointerdown', startDrag);
+});
+document.addEventListener('pointermove', moveDrag);
+document.addEventListener('pointerup', stopDrag);
+document.addEventListener('pointercancel', stopDrag);
+
 function pointerDownHandler(e) {
   e.preventDefault();
   const target = e.target;
@@ -424,7 +476,7 @@ video.addEventListener('timeupdate', () => {
 //   updateTimeDisplays();
 // });
 
-// ---------- UI update helpers ----------
+// UI update helpers 
 function updateOverlay() {
   const w = trackWidth();
   selectionOverlay.style.left = (startPercent * w) + 'px';

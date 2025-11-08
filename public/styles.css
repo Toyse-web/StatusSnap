@@ -245,3 +245,19 @@ footer {
   cursor: pointer;
   font-weight: bold;
 }
+
+#trimmerTrack {
+  position: relative;
+  user-select: none;
+  touch-action: none; /* prevent page scroll while dragging */
+}
+
+#startHandle, #endHandle, #playhead {
+  width: 16px;
+  height: 48px;
+  border-radius: 4px;
+  background-color: #25d366;
+  cursor: pointer;
+  touch-action: none; /* prevent scrolling on touch */
+  z-index: 10;
+}
