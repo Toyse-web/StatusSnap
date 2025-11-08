@@ -14,6 +14,27 @@
         <form id="uploadForm" enctype="multipart/form-data" method="POST" action="/process-video">
             <input type="file" name="video" accept="video/*" id="videoInput" required>
 
+            <!-- Video trimmer -->
+<div class="video-trimmer">
+  <video id="videoPlayer" controls></video>
+
+  <div class="trimmer-track" id="trimmerTrack">
+    <canvas id="thumbnailTrack"></canvas>
+    <div id="selectionOverlay"></div>
+    <div id="startHandle" class="handle"></div>
+    <div id="endHandle" class="handle"></div>
+    <div id="playhead"></div>
+  </div>
+
+  <div class="time-display">
+    <span id="startTime">00:00</span>
+    <span id="endTime">00:00</span>
+  </div>
+
+  <button id="trimBtn" class="trim-btn">Trim & Upload</button>
+</div>
+
+
             <div class="button-container">
                 <button type="submit" id="processBtn" class="process-btn">Process Video</button>
 
@@ -41,6 +62,6 @@
 
         <div id="statusMessage" class="status-message"></div>
     </div>
-<script src="/script.js"></script>
+<script type="module" src="/script.js"></script>
 </body>
 </html>

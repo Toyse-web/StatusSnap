@@ -1,6 +1,5 @@
 
         const form = document.getElementById('uploadForm');
-        const progress = document.getElementById('progress');
         const processBtn =document.getElementById("processBtn");
         const progressContainer = document.getElementById("progressContainer");
         const progressFill = document.getElementById("progressFill");
@@ -163,3 +162,293 @@
                 clearInterval(progressInterval);
             }
         });
+
+// Video Trimmer Helper
+// --- Trimmer improved: constrained playback + live scrub (pointer events) ---
+const video = document.getElementById('videoPlayer');
+const canvas = document.getElementById('thumbnailTrack');
+const ctx = canvas.getContext('2d');
+const track = document.getElementById('trimmerTrack');
+const selectionOverlay = document.getElementById('selectionOverlay');
+const startHandle = document.getElementById('startHandle');
+const endHandle = document.getElementById('endHandle');
+const playhead = document.getElementById('playhead');
+const startTimeDisplay = document.getElementById('startTime');
+const endTimeDisplay = document.getElementById('endTime');
+const trimBtn = document.getElementById('trimBtn');
+
+let duration = 0;
+let startPercent = 0;   // 0..1
+let endPercent = 1;     // 0..1
+let playheadPercent = 0;
+let dragging = null;    // "start" | "end" | "playhead" | null
+let framesReady = false;
+
+// ensure track width is measured fresh
+function trackWidth() { return Math.max(1, track.clientWidth); }
+
+// ---------- File selection ----------
+videoInput.addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const url = URL.createObjectURL(f);
+  video.src = url;
+  video.load();
+  video.style.display = 'block';
+});
+
+// ---------- When metadata loads ----------
+video.addEventListener('loadedmetadata', async () => {
+  duration = video.duration || 0.0001;
+  // limit default selection to max 90s
+  if (duration > 90) {
+    endPercent = 90 / duration;
+  } else {
+    endPercent = 1;
+  }
+  startPercent = 0;
+  playheadPercent = startPercent;
+  await drawThumbnails(); // fills canvas
+  updateOverlay();
+  updateTimeDisplays();
+  framesReady = true;
+});
+
+// ---------- Draw thumbnail frames for timeline ----------
+async function drawThumbnails() {
+  const w = trackWidth();
+  const h = track.clientHeight;
+  canvas.width = w;
+  canvas.height = h;
+  const frames = Math.min(12, Math.max(6, Math.floor(w / 60))); // responsive frames
+  const step = duration / frames;
+  video.pause();
+  for (let i = 0; i < frames; ++i) {
+    await seekTo(Math.min(i * step, duration - 0.05));
+    ctx.drawImage(video, (i * w) / frames, 0, w / frames, h);
+  }
+  video.currentTime = Math.max(0, startPercent * duration);
+}
+
+function seekTo(t) {
+  return new Promise(res => {
+    const handler = () => {
+      video.removeEventListener('seeked', handler);
+      // small timeout to ensure frame drawn reliably on some devices
+      setTimeout(res, 10);
+    };
+    video.addEventListener('seeked', handler);
+    video.currentTime = Math.min(t, Math.max(0, duration - 0.05));
+  });
+}
+
+// ---------- Pointer handling for handles + playhead ----------
+function percentFromPointer(clientX) {
+  const rect = track.getBoundingClientRect();
+  const x = Math.min(Math.max(clientX - rect.left, 0), rect.width);
+  return x / rect.width;
+}
+
+function pointerDownHandler(e) {
+  e.preventDefault();
+  const target = e.target;
+  if (target === startHandle) dragging = 'start';
+  else if (target === endHandle) dragging = 'end';
+  else if (target === playhead) dragging = 'playhead';
+  // capture pointer for touch/mouse
+  if (e.pointerId != null) target.setPointerCapture(e.pointerId);
+}
+
+function pointerMoveHandler(e) {
+  if (!dragging) return;
+  const pct = percentFromPointer(e.clientX);
+  if (dragging === 'start') {
+    startPercent = Math.min(pct, endPercent - 0.01);
+    // ensure 90s max
+    if ((endPercent - startPercent) * duration > 90) startPercent = endPercent - 90 / duration;
+    // update video preview to start position for instant feedback
+    video.currentTime = startPercent * duration;
+    playheadPercent = startPercent;
+  } else if (dragging === 'end') {
+    endPercent = Math.max(pct, startPercent + 0.01);
+    if ((endPercent - startPercent) * duration > 90) endPercent = startPercent + 90 / duration;
+    // update preview to end (so user sees end frame)
+    video.currentTime = Math.min(endPercent * duration, duration - 0.05);
+    playheadPercent = Math.min(playheadPercent, endPercent);
+  } else if (dragging === 'playhead') {
+  playheadPercent = Math.min(Math.max(pct, startPercent), endPercent);
+  // pause while dragging for smoother preview
+  if (!video.paused) video.pause();
+  clearTimeout(window._scrubTimeout);
+window._scrubTimeout = setTimeout(() => {
+  video.currentTime = playheadPercent * duration;
+}, 30);
+
+  updateOverlay();
+}
+  updateOverlay();
+  updateTimeDisplays();
+}
+
+function pointerUpHandler(e) {
+  // release pointer capture if present
+  try {
+    if (e.pointerId != null && e.target.releasePointerCapture) e.target.releasePointerCapture(e.pointerId);
+  } catch (err) {}
+  dragging = null;
+}
+
+// attach pointer events
+[startHandle, endHandle, playhead].forEach(el => {
+  el.addEventListener('pointerdown', pointerDownHandler);
+});
+document.addEventListener('pointermove', pointerMoveHandler);
+document.addEventListener('pointerup', pointerUpHandler);
+window.addEventListener('resize', () => {
+  if (framesReady) drawThumbnails().then(updateOverlay);
+});
+
+// Handle live dragging on the playhead
+// --- Improved draggable playhead (no click seeking) ---
+let draggingPlayhead = false;
+
+// pointerdown on playhead
+playhead.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  draggingPlayhead = true;
+  // Capture pointer so we can drag smoothly even if cursor leaves
+  if (e.pointerId != null && track.setPointerCapture) {
+    try { track.setPointerCapture(e.pointerId); } catch {}
+  }
+});
+
+// pointermove while dragging
+track.addEventListener('pointermove', (e) => {
+  if (!draggingPlayhead) return;
+
+  const rect = track.getBoundingClientRect();
+  const x = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
+  let pct = x / rect.width;
+
+  // constrain inside selection
+  pct = Math.min(Math.max(pct, startPercent), endPercent);
+  playheadPercent = pct;
+
+  // pause and show live preview as you drag
+  if (!video.paused) video.pause();
+
+  clearTimeout(window._scrubTimeout);
+  window._scrubTimeout = setTimeout(() => {
+    video.currentTime = playheadPercent * duration;
+  }, 20);
+
+  updateOverlay();
+});
+
+// pointerup → stop dragging
+document.addEventListener('pointerup', (e) => {
+  if (!draggingPlayhead) return;
+  draggingPlayhead = false;
+  if (e.pointerId != null && track.releasePointerCapture) {
+    try { track.releasePointerCapture(e.pointerId); } catch {}
+  }
+  // final seek confirmation
+  video.currentTime = playheadPercent * duration;
+});
+
+// ---------- Play behavior: play only inside selection ----------
+video.addEventListener('play', () => {
+  // if playing and currentTime < selection start, jump to start
+  const selStart = startPercent * duration;
+  if (video.currentTime < selStart || video.currentTime > endPercent * duration) {
+    video.currentTime = selStart;
+  }
+});
+
+video.addEventListener('timeupdate', () => {
+  // keep playhead synced
+  playheadPercent = video.currentTime / duration;
+  // if passed end -> pause and keep at end (WhatsApp stops at end)
+  const selEnd = endPercent * duration;
+  if (video.currentTime >= selEnd - 0.05 && !video.paused) {
+    video.pause();
+    // clamp to slightly before end so UI shows inside selection
+    video.currentTime = Math.max(startPercent * duration, selEnd - 0.05);
+  }
+  updateOverlay();
+});
+
+// // When user clicks on track (seek)
+// track.addEventListener('click', (e) => {
+//   // quick seek within selected range: convert to percent and clamp to selection
+//   const pct = percentFromPointer(e.clientX);
+//   const clamped = Math.min(Math.max(pct, startPercent), endPercent);
+//   playheadPercent = clamped;
+//   clearTimeout(window._scrubTimeout);
+// window._scrubTimeout = setTimeout(() => {
+//   video.currentTime = playheadPercent * duration;
+// }, 30);
+
+//   updateOverlay();
+//   updateTimeDisplays();
+// });
+
+// ---------- UI update helpers ----------
+function updateOverlay() {
+  const w = trackWidth();
+  selectionOverlay.style.left = (startPercent * w) + 'px';
+  selectionOverlay.style.width = ((endPercent - startPercent) * w) + 'px';
+  // position handles slightly offset so handle center is aligned
+  startHandle.style.left = (startPercent * w - startHandle.offsetWidth / 2) + 'px';
+  endHandle.style.left = (endPercent * w - endHandle.offsetWidth / 2) + 'px';
+  playhead.style.left = (playheadPercent * w - playhead.offsetWidth / 2) + 'px';
+}
+
+function updateTimeDisplays() {
+  const s = startPercent * duration;
+  const e = endPercent * duration;
+  startTimeDisplay.textContent = formatTime(s);
+  endTimeDisplay.textContent = formatTime(e);
+}
+
+function formatTime(sec) {
+  if (!isFinite(sec) || sec < 0) return '00:00';
+  const mm = Math.floor(sec / 60).toString().padStart(2, '0');
+  const ss = Math.floor(sec % 60).toString().padStart(2, '0');
+  return `${mm}:${ss}`;
+}
+
+// ---------- Upload / Trim action ----------
+// Instead of trying to trim client-side, send selection to server
+trimBtn.addEventListener('click', async () => {
+  const start = Math.round(startPercent * duration * 1000) / 1000; // seconds with ms
+  const end = Math.round(endPercent * duration * 1000) / 1000;
+  const length = end - start;
+  if (length <= 0) { alert('Invalid selection'); return; }
+  // If you want to do client-side trimming with ffmpeg.wasm, implement here.
+  // Recommended: send original file + start + duration to backend; backend will trim with FFmpeg or Cloudinary.
+  const file = videoInput.files[0];
+  if (!file) { alert('No file selected'); return; }
+
+  const fd = new FormData();
+  fd.append('video', file);
+  fd.append('start', String(start));
+  fd.append('duration', String(length));
+
+  // Show simple uploading state
+  trimBtn.textContent = 'Uploading...';
+  trimBtn.disabled = true;
+
+  try {
+    const res = await fetch('/process-video', { method: 'POST', body: fd });
+    // server should return processed file URL or redirect; handle accordingly
+    const text = await res.text(); // if server returns html
+    document.open(); document.write(text); document.close();
+  } catch (err) {
+    console.error(err);
+    alert('Upload failed');
+  } finally {
+    trimBtn.textContent = 'Trim & Upload';
+    trimBtn.disabled = false;
+  }
+});
