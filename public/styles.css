@@ -208,6 +208,11 @@ footer {
   pointer-events: none;
 }
 
+.wide {
+  width: 12px;
+  background-color: transparent;
+}
+
 .handle {
   position: absolute;
   top: 0;
