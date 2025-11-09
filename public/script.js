@@ -1,86 +1,87 @@
+const form = document.getElementById('uploadForm');
+const processBtn =document.getElementById("processBtn");
+const progressContainer = document.getElementById("progressContainer");
+const progressFill = document.getElementById("progressFill");
+const progressText = document.getElementById("progressText");
+const statusMessage = document.getElementById("statusMessage");
+const videoInput = document.getElementById("videoInput");
 
-        const form = document.getElementById('uploadForm');
-        const processBtn =document.getElementById("processBtn");
-        const progressContainer = document.getElementById("progressContainer");
-        const progressFill = document.getElementById("progressFill");
-        const progressText = document.getElementById("progressText");
-        const statusMessage = document.getElementById("statusMessage");
-        const videoInput = document.getElementById("videoInput");
+// Hidden inputs for cloudinary trimming
+const trimStartInput = document.getElementById("trimStart");
+const trimEndInput = document.getElementById("trimEnd");
 
-        let progressInterval;
+if (processBtn) processBtn.type = "button";
 
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
+let progressInterval;
 
-            if(!videoInput.files[0]) {
-                alert("Please select a video file first!");
-                return;
-            }
-            // Show progress bar, hide button
-            processBtn.classList.add("hidden");
-            progressContainer.classList.remove("hidden");
-            statusMessage.textContent = "Processing...";
+form.addEventListener("submit", function(e) {
+  e.preventDefault();
 
-            let progress = 0;
-            progressInterval = setInterval(() => {
-                progress += Math.random() * 5;
-                if (progress >= 95) {
-                    progress = 95; //Hold at 95% until actual completion
-                }
-                updateProgress(progress);
-            }, 500);
+  const videoFile = videoInput.files[0];
+  if (!videoFile) {
+    alert("Please select a video first!");
+    return;
+  }
 
-            // Actually submit the form
-            this.submit();
+  processBtn.classList.add("hidden");
+  progressContainer.classList.remove("hidden");
+  statusMessage.textContent = "Uploading and trimming...";
+
+  // Start visual progress (simulate until backend respons)
+  let progress = 0;
+  progressInterval = setInterval(() => {
+    progress += Math.random() * 5;
+    if (progress >= 95) progress = 95;
+    updateProgress(progress);
+  }, 500);
+})
+
+function updateProgress(percent) {
+  progressFill.style.width = percent + "%";
+  progressText.textContent = Math.round(percent) + "%";
+
+  // Update status message based on progress
+  if (percent < 25) {
+    statusMessage.textContent = "Analyzing video...";
+  } else if (percent < 50) {
+    statusMessage.textContent = "Processing video...";
+  } else if (percent < 75) {
+    statusMessage.textContent = "Optimizing for WhatsApp...";
+  } else {
+    statusMessage.textContent = "Finalizing...";
+  }
+}
+
+async function downloadAndShare(downloadUrl, filename) {
+  const downloadBtn = event.target;
+  const originalText = downloadBtn.textContent;
+  try {
+    // Show loading state
+    downloadBtn.textContent = "Downloading...";
+    downloadBtn.disabled = true;
+    
+    // Download the file
+    const response = await fetch(downloadUrl);
+    const blob = await response.blob();
+    const file = new File([blob], filename, {type: "video/mp4"});
+    
+    // Create object UR
+    const fileUrl = URL.createObjectURL(blob);
+    
+    // Try native sharing first (mobile devices)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: "WhatsApp Status Video",
+          text: "Check out my optimized video from statusSnap!"
         });
-
-         function updateProgress(percent) {
-            progressFill.style.width = percent + "%";
-            progressText.textContent = Math.round(percent) + "%";
-
-            // Update status message based on progress
-            if (percent < 25) {
-                statusMessage.textContent = "Analyzing video...";
-            } else if (percent < 50) {
-                statusMessage.textContent = "Processing video...";
-            } else if (percent < 75) {
-                statusMessage.textContent = "Optimizing for WhatsApp...";
-            } else {
-                statusMessage.textContent = "Finalizing...";
-            }
-         }
-
-         async function downloadAndShare(downloadUrl, filename) {
-            const downloadBtn = event.target;
-            const originalText = downloadBtn.textContent;
-
-            try {
-                // Show loading state
-                downloadBtn.textContent = "Downloading...";
-                downloadBtn.disabled = true;
-
-                // Download the file
-                const response = await fetch(downloadUrl);
-                const blob = await response.blob();
-                const file = new File([blob], filename, {type: "video/mp4"});
-
-                // Create object URL
-                const fileUrl = URL.createObjectURL(blob);
-
-                // Try native sharing first (mobile devices)
-                if (navigator.share) {
-                try {
-                    await navigator.share({
-                        files: [file],
-                        title: "WhatsApp Status Video",
-                        text: "Check out my optimized video from statusSnap!"
-                    });
-                    console.log("File shared successfully");
-                    return;
-                } catch (shareErr) {
-                    console.log("Native share failed, trying WhatsApp direct...");
-                }
-            }
+        console.log("File shared successfully");
+        return;
+      } catch (shareErr) {
+        console.log("Native share failed, trying WhatsApp direct...");
+      }
+    }
 
             // Fallback direct Whatsapp share
             await shareToWhatsApp(file, fileUrl, filename);
@@ -175,7 +176,6 @@ const endHandle = document.getElementById('endHandle');
 const playhead = document.getElementById('playhead');
 const startTimeDisplay = document.getElementById('startTime');
 const endTimeDisplay = document.getElementById('endTime');
-const trimBtn = document.getElementById('trimBtn');
 
 let duration = 0;
 let startPercent = 0;   // 0..1
@@ -375,7 +375,6 @@ window.addEventListener('resize', () => {
 });
 
 // Handle live dragging on the playhead
-// --- Improved draggable playhead (no click seeking) ---
 let draggingPlayhead = false;
 
 // pointerdown on playhead
@@ -461,21 +460,6 @@ video.addEventListener('timeupdate', () => {
   updateOverlay();
 });
 
-// // When user clicks on track (seek)
-// track.addEventListener('click', (e) => {
-//   // quick seek within selected range: convert to percent and clamp to selection
-//   const pct = percentFromPointer(e.clientX);
-//   const clamped = Math.min(Math.max(pct, startPercent), endPercent);
-//   playheadPercent = clamped;
-//   clearTimeout(window._scrubTimeout);
-// window._scrubTimeout = setTimeout(() => {
-//   video.currentTime = playheadPercent * duration;
-// }, 30);
-
-//   updateOverlay();
-//   updateTimeDisplays();
-// });
-
 // UI update helpers 
 function updateOverlay() {
   const w = trackWidth();
@@ -501,37 +485,126 @@ function formatTime(sec) {
   return `${mm}:${ss}`;
 }
 
-// ---------- Upload / Trim action ----------
-// Instead of trying to trim client-side, send selection to server
-trimBtn.addEventListener('click', async () => {
-  const start = Math.round(startPercent * duration * 1000) / 1000; // seconds with ms
-  const end = Math.round(endPercent * duration * 1000) / 1000;
-  const length = end - start;
-  if (length <= 0) { alert('Invalid selection'); return; }
-  // If you want to do client-side trimming with ffmpeg.wasm, implement here.
-  // Recommended: send original file + start + duration to backend; backend will trim with FFmpeg or Cloudinary.
+// Make sure process button is a plain button (defensive)
+if (processBtn) processBtn.type = 'button';
+
+// Remove any form submit handler if still bound earlier. If you previously added one, you can
+// optionally do form.onsubmit = null; to clear it here. (But changing the button to type="button" is enough.)
+
+processBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+
   const file = videoInput.files[0];
-  if (!file) { alert('No file selected'); return; }
-
-  const fd = new FormData();
-  fd.append('video', file);
-  fd.append('start', String(start));
-  fd.append('duration', String(length));
-
-  // Show simple uploading state
-  trimBtn.textContent = 'Uploading...';
-  trimBtn.disabled = true;
-
-  try {
-    const res = await fetch('/process-video', { method: 'POST', body: fd });
-    // server should return processed file URL or redirect; handle accordingly
-    const text = await res.text(); // if server returns html
-    document.open(); document.write(text); document.close();
-  } catch (err) {
-    console.error(err);
-    alert('Upload failed');
-  } finally {
-    trimBtn.textContent = 'Trim & Upload';
-    trimBtn.disabled = false;
+  if (!file) {
+    alert("Please select a video first!");
+    return;
   }
+
+  // Ensure trim values are set from your trimmer state
+  // NOTE: startPercent/endPercent/duration must be up-to-date from your trimmer code
+  const startSeconds = (typeof startPercent !== 'undefined' && typeof duration !== 'undefined')
+    ? (startPercent * duration)
+    : 0;
+  const endSeconds = (typeof endPercent !== 'undefined' && typeof duration !== 'undefined')
+    ? (endPercent * duration)
+    : Math.min(90, duration || 90);
+
+  trimStartInput.value = startSeconds.toFixed(2);
+  trimEndInput.value = endSeconds.toFixed(2);
+
+  // Show progress UI
+  progressContainer.classList.remove("hidden");
+  progressFill.style.width = "0%";
+  progressText.textContent = "0%";
+  statusMessage.textContent = "Uploading...";
+
+  // Prepare form data (same fields your backend expects)
+  const fd = new FormData(form); // contains file + hidden start/end
+
+  // Use XHR so we can read upload progress
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "/process-video", true);
+
+  // Upload progress
+  xhr.upload.onprogress = (evt) => {
+    if (evt.lengthComputable) {
+      const percent = (evt.loaded / evt.total) * 80; // allocate 80% to upload
+      progressFill.style.width = `${percent.toFixed(1)}%`;
+      progressText.textContent = `${Math.floor(percent)}%`;
+      statusMessage.textContent = "Uploading to server...";
+    }
+  };
+
+  // If server sends long processing time after receiving upload, show simulated processing progress up to 95%
+  let processingInterval = null;
+  xhr.onloadstart = () => {
+    // nothing
+  };
+
+  xhr.onload = () => {
+    // upload finished (server responded). Clear any processing interval
+    if (processingInterval) {
+      clearInterval(processingInterval);
+      processingInterval = null;
+    }
+
+    if (xhr.status >= 200 && xhr.status < 300) {
+      // Server returned HTML (your res.render("index", ...))
+      const html = xhr.responseText;
+
+      // Show almost-done then inject html
+      progressFill.style.width = "100%";
+      progressText.textContent = "100%";
+      statusMessage.textContent = "Done!";
+
+      // Replace container contents so the download/share buttons (rendered by server) appear
+      const container = document.querySelector('.container');
+      if (container) {
+        container.innerHTML = html;
+      } else {
+        // fallback: write whole document (less preferred)
+        document.open();
+        document.write(html);
+        document.close();
+      }
+
+      // Optional: scroll to actions
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 200);
+    } else {
+      // server returned error
+      console.error("Upload error, server status:", xhr.status, xhr.responseText);
+      statusMessage.textContent = "Server error: " + xhr.status;
+      alert("Upload failed. See console for details.");
+      // hide progress or let user retry
+    }
+  };
+
+  xhr.onerror = () => {
+    if (processingInterval) { clearInterval(processingInterval); processingInterval = null; }
+    console.error("Network error uploading file");
+    statusMessage.textContent = "Network error during upload";
+    alert("Network error during upload. Try again.");
+  };
+
+  // In case server receives the file and does longer work, we can simulate remaining progress up to 95%
+  xhr.onreadystatechange = () => {
+    // When upload is done and readyState is 2/3 (headers/processing) we can start a small simulated progress
+    // but avoid double-starting:
+    if (xhr.readyState === 2) {
+      let current = parseFloat(progressFill.style.width) || 0;
+      if (!processingInterval) {
+        processingInterval = setInterval(() => {
+          current = Math.min(95, current + Math.random() * 3);
+          progressFill.style.width = `${current}%`;
+          progressText.textContent = `${Math.floor(current)}%`;
+          statusMessage.textContent = "Server processing...";
+        }, 400);
+      }
+    }
+  };
+
+  // send it
+  xhr.send(fd);
 });

@@ -50,6 +50,10 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
   const localPath = req.file.path;
 
   try {
+    const start = parseFloat(req.body.start) || 0;
+    const end = parseFloat(req.body.end) || 0;
+    const duration = Math.max(end - start, 1); //ensure duration > 0
+
     // Upload & create eager (transcoded) version so result is available immediately
     const result = await cloudinary.uploader.upload(localPath, {
       resource_type: "video",
@@ -59,8 +63,9 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
       // Eager transformations are generated during upload and returned in the result
       eager: [
         {
-          // WhatsApp-friendly transformation:
-          width: 720,
+          start_offset: req.body.start || "0", // where trimming starts
+          end_offset: req.body.end || "60", // fallback to 60s
+          width: 720,  // WhatsApp-friendly transformation:
           crop: "limit",            // limit to 720 while preserving aspect ratio
           format: "mp4",
           transformation: [
@@ -88,6 +93,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
     });
 
   } catch (err) {
+    console.log(err);
     console.error("Cloudinary upload/transform error:", err);
     await fsp.unlink(localPath).catch(()=>{});
     return res.render("index", {

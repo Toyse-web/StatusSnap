@@ -14,35 +14,36 @@
         <form id="uploadForm" enctype="multipart/form-data" method="POST" action="/process-video">
             <input type="file" name="video" accept="video/*" id="videoInput" required>
 
+            <!-- Hidden trimming values -->
+            <input type="hidden" name="start" id="trimStart" value="0">
+            <input type="hidden" name="end" id="trimEnd" value="0">
+
             <!-- Video trimmer -->
-<div class="video-trimmer">
-  <video id="videoPlayer" playsinline webkit-playsinline controls></video>
+            <div class="video-trimmer">
+                <video id="videoPlayer" playsinline webkit-playsinline controls></video>
 
-  <div class="trimmer-track" id="trimmerTrack">
-    <canvas id="thumbnailTrack"></canvas>
-    <div id="selectionOverlay"></div>
-    <div id="startHandle" class="handle"></div>
-    <div id="endHandle" class="handle"></div>
-    <div id="playhead"></div>
-  </div>
+                <div class="trimmer-track" id="trimmerTrack">
+                    <canvas id="thumbnailTrack"></canvas>
+                    <div id="selectionOverlay"></div>
+                    <div id="startHandle" class="handle"></div>
+                    <div id="endHandle" class="handle"></div>
+                    <div id="playhead"></div>
+                </div>
 
-  <div class="time-display">
-    <span id="startTime">00:00</span>
-    <span id="endTime">00:00</span>
-  </div>
-
-  <button id="trimBtn" class="trim-btn">Trim & Upload</button>
-</div>
-
-
+                <div class="time-display">
+                <span id="startTime">00:00</span>
+                <span id="endTime">00:00</span>
+            </div>
+        </div>
             <div class="button-container">
-                <button type="submit" id="processBtn" class="process-btn">Process Video</button>
+                <button type="button" id="processBtn" class="process-btn">Process Video</button>
 
                 <div class="progress-container hidden" id="progressContainer">
                     <div class="progress-bar">
                         <div class="progress-fill" id="progressFill"></div>
                     </div>
                     <div class="progress-text" id="progressText">0%</div>
+                    <div id="statusMessage" class="status-message"></div>
                 </div>
             </div>
         </form>
@@ -59,9 +60,8 @@
                 <a href="<%= downloadUrl %>" download="<%= typeof outputFilename !== 'undefined' ? outputFilename : 'StatusSnap-video.mp4' %>" class="secondary-btn" id="downloadOnly">Download</a>
             </div>
         <% } %>
-
-        <div id="statusMessage" class="status-message"></div>
     </div>
-<script type="module" src="/script.js"></script>
+
+    <script src="/script.js"></script>
 </body>
 </html>
