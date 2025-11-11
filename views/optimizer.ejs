@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StatusSnap - WhatsApp Video Optimizer</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>StatusSnap</h1>
+        <p>Optimize your videos for WhatsApp status (up to 90 seconds, no blur!)</p>
+
+        <form id="uploadForm" enctype="multipart/form-data" method="POST" action="/process-video">
+            <input type="file" name="video" accept="video/*" id="videoInput" required>
+
+            <!-- Hidden trimming values -->
+            <input type="hidden" name="start" id="trimStart" value="0">
+            <input type="hidden" name="end" id="trimEnd" value="0">
+
+            <!-- Video trimmer -->
+            <div class="video-trimmer">
+                <video id="videoPlayer" playsinline webkit-playsinline controls></video>
+
+                <div class="trimmer-track" id="trimmerTrack">
+                    <canvas id="thumbnailTrack"></canvas>
+                    <div id="selectionOverlay"></div>
+                    <div class="wide"><span id="startHandle" class="handle"></span></div>
+                    <div class="wide"><span id="endHandle" class="handle"></span></div>
+                    <div id="playhead"></div>
+                </div>
+
+                <div class="time-display">
+                <span id="startTime">00:00</span>
+                <span id="endTime">00:00</span>
+            </div>
+        </div>
+            <div class="button-container">
+                <button type="button" id="processBtn" class="process-btn">Process Video</button>
+
+                <div class="progress-container hidden" id="progressContainer">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">0%</div>
+                    <div id="statusMessage" class="status-message"></div>
+                </div>
+            </div>
+        </form>
+
+        <% if (message) { %>
+            <p class="message <%= message.includes('Error') ? 'error' : message.includes('Warning') ? 'warning' : 'success' %>">
+                <%= message %>
+            </p>
+        <% } %>
+
+        <% if (downloadUrl) { %>
+            <div class="action-buttons">
+                <button class="download-btn" onclick="downloadAndShare('<%= downloadUrl %>', '<%= typeof outputFilename !== 'undefined' ? outputFilename : downloadUrl.split('/').pop() %>')">Share video</button>
+                <a href="<%= downloadUrl %>" download="<%= typeof outputFilename !== 'undefined' ? outputFilename : 'StatusSnap-video.mp4' %>" class="secondary-btn" id="downloadOnly">Download</a>
+            </div>
+        <% } %>
+    </div>
+
+    <script src="/script.js"></script>
+</body>
+</html>

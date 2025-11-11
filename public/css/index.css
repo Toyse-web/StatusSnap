@@ -1,0 +1,114 @@
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: radial-gradient(circle at center, #0a0a0a, #1a1a1a);
+  color: #fff;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Welcome Intro */
+.welcome-text {
+    font-size: 2rem;
+}
+
+.intro-screen {
+  position: fixed;
+  inset: 0;
+  background: #0a0a0a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 1s ease;
+  flex-direction: column;
+}
+
+.welcome-container {
+  text-align: center;
+  max-width: 80%;
+  line-height: 1.4;
+}
+
+.cursor {
+  display: inline-block;
+  margin-left: 3px;
+  color: #00c6ff;
+  font-weight: bold;
+  animation: blink 0.8s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Main Content */
+.hidden {
+    display: none;
+}
+
+.main-content {
+    text-align: center;
+    animation: fadeIn 1s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.title {
+    font-size: 2.5rem;
+    color: #fff;
+}
+
+.title span {
+  background: linear-gradient(45deg, #00c6ff, #0072ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  color: #bbb;
+  margin-bottom: 40px;
+}
+
+/* Tools cards */
+.tool-cards {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.tool-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  padding: 2rem;
+  width: 260px;
+  text-decoration: none;
+  color: #fff;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.tool-card:hover {
+  transform: translateY(-8px);
+  border-color: #00c6ff;
+  box-shadow: 0 8px 20px rgba(0, 198, 255, 0.2);
+}
+
+/* Responsive for small screens */
+@media (max-width: 480px) {
+  .welcome-text {
+    font-size: 1.5rem;
+  }
+
+  .tool-card {
+    width: 90%;
+  }
+}

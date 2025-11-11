@@ -1,0 +1,266 @@
+:root {
+  --wa-green: #25d366;
+  --wa-dark: #121b22;
+  --wa-mid: #1f2c34;
+  --wa-light: #e9edef;
+  --wa-gray: #8696a0;
+}
+
+body {
+  background: var(--wa-dark);
+  color: var(--wa-light);
+  font-family: "Poppins", sans-serif;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.app-container {
+  width: 90%;
+  max-width: 480px;
+  background: var(--wa-mid);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+
+header h1 {
+  color: var(--wa-green);
+  font-size: 2rem;
+  margin-bottom: 0.2rem;
+}
+
+header p {
+  color: var(--wa-gray);
+  font-size: 0.9rem;
+}
+
+.upload-card {
+  margin-top: 1.5rem;
+  background: var(--wa-dark);
+  border: 1px solid var(--wa-green);
+  border-radius: 15px;
+  padding: 1.5rem;
+}
+
+.upload-label {
+  display: block;
+  background: var(--wa-green);
+  color: var(--wa-dark);
+  font-weight: 600;
+  padding: 0.7rem 1.2rem;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: fit-content;
+  margin: 0 auto 1rem;
+}
+
+.upload-label:hover {
+  opacity: 0.9;
+}
+
+.btn {
+  display: inline-block;
+  border: none;
+  cursor: pointer;
+  border-radius: 30px;
+  padding: 0.7rem 1.2rem;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: 0.3s;
+}
+
+.process-btn {
+  background: var(--wa-green);
+  color: var(--wa-dark);
+  width: 100%;
+}
+
+.process-btn:hover {
+  transform: scale(1.02);
+}
+
+.progress-container {
+  margin-top: 1rem;
+}
+
+.progress-bar {
+  height: 8px;
+  width: 100%;
+  background: var(--wa-mid);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--wa-green);
+  transition: width 0.3s ease;
+}
+
+.actions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.share-btn {
+  background: var(--wa-green);
+  color: var(--wa-dark);
+}
+
+.secondary-btn {
+  background: transparent;
+  color: var(--wa-green);
+  border: 1px solid var(--wa-green);
+}
+
+.status-message {
+  margin-top: 1rem;
+  color: var(--wa-gray);
+  font-size: 0.9rem;
+}
+
+.alert {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.alert.success {
+  background: rgba(37, 211, 102, 0.2);
+  color: var(--wa-green);
+}
+
+.alert.error {
+  background: rgba(255, 0, 0, 0.15);
+  color: #ff4e4e;
+}
+
+.alert.warning {
+  background: rgba(255, 165, 0, 0.15);
+  color: #ffb74d;
+}
+
+footer {
+  margin-top: 2rem;
+  font-size: 0.8rem;
+  color: var(--wa-gray);
+}
+
+/* Utility */
+.hidden {
+  display: none !important;
+}
+
+@media (max-width: 480px) {
+  .app-container {
+    padding: 1.5rem;
+  }
+}
+
+/* Video trimmer style */
+
+.video-trimmer {
+  width: 90%;
+  max-width: 600px;
+  margin: 20px auto;
+  text-align: center;
+  font-family: sans-serif;
+}
+
+#videoPlayer {
+  width: 100%;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.trimmer-track {
+  position: relative;
+  width: 100%;
+  height: 70px;
+  background: #333;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+#thumbnailTrack {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#selectionOverlay {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: rgba(0, 255, 0, 0.2);
+  border: 2px solid lime;
+  pointer-events: none;
+}
+
+.wide {
+  width: 12px;
+  background-color: transparent;
+}
+
+.handle {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  background: lime;
+  cursor: ew-resize;
+  z-index: 5;
+}
+
+#playhead {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: white;
+  z-index: 4;
+}
+
+.time-display {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 14px;
+  color: #333;
+}
+
+.trim-btn {
+  margin-top: 10px;
+  background: limegreen;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#trimmerTrack {
+  position: relative;
+  user-select: none;
+  touch-action: none; /* prevent page scroll while dragging */
+}
+
+#startHandle, #endHandle, #playhead {
+  border-radius: 4px;
+  background-color: #25d366;
+  cursor: pointer;
+  touch-action: none; /* prevent scrolling on touch */
+  z-index: 10;
+}

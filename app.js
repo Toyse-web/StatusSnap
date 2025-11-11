@@ -39,12 +39,16 @@ const upload = multer({
 
 // Root page
 app.get("/", (req, res) => {
-  res.render("index", { message: null, downloadUrl: null });
+  res.render("index");
+});
+
+app.get("/optimizer", (req, res) => {
+  res.render("optimizer", { message: null, downloadUrl: null });
 });
 
 app.post("/process-video", upload.single("video"), async (req, res) => {
   if (!req.file) {
-    return res.render("index", { message: "Please upload a video!", downloadUrl: null });
+    return res.render("optimizer", { message: "Please upload a video!", downloadUrl: null });
   }
 
   const localPath = req.file.path;
@@ -58,6 +62,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
     const result = await cloudinary.uploader.upload(localPath, {
       resource_type: "video",
       folder: "statusSnap",
+      chunk_size: 6000000, // 6 mb chunks
       public_id: `status_${Date.now()}`,
       overwrite: true,
       // Eager transformations are generated during upload and returned in the result
@@ -87,7 +92,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
     await fsp.unlink(localPath).catch(()=>{});
 
     // render page with download link
-    return res.render("index", {
+    return res.render("optimizer", {
       message: "Video processed successfully!",
       downloadUrl
     });
@@ -96,7 +101,7 @@ app.post("/process-video", upload.single("video"), async (req, res) => {
     console.log(err);
     console.error("Cloudinary upload/transform error:", err);
     await fsp.unlink(localPath).catch(()=>{});
-    return res.render("index", {
+    return res.render("optimizer", {
       message: "Error processing video via Cloudinary. Try again.",
       downloadUrl: null
     });
