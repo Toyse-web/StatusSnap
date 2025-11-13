@@ -3,11 +3,12 @@ body {
   font-family: 'Poppins', sans-serif;
   background: radial-gradient(circle at center, #0a0a0a, #1a1a1a);
   color: #fff;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Welcome Intro */
@@ -47,12 +48,12 @@ body {
 
 /* Main Content */
 .hidden {
-    display: none;
+  display: none;
 }
 
 .main-content {
-    text-align: center;
-    animation: fadeIn 1s ease forwards;
+  text-align: center;
+  animation: fadeIn 1s ease forwards;
 }
 
 @keyframes fadeIn {
