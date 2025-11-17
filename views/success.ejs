@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Scheduled Successfully</title>
+</head>
+<body>
+  <h2>Your status has been scheduled!</h2>
+  <p><strong>Type:</strong> <%= post.type %></p>
+  <p><strong>Caption:</strong> <%= post.caption %></p>
+  <% if (post.file) { %>
+    <% if (post.type === 'image') { %>
+      <img src="<%= post.file %>" width="200">
+    <% } else if (post.type === 'video') { %>
+      <video width="200" controls>
+        <source src="<%= post.file %>" type="video/mp4">
+      </video>
+    <% } %>
+  <% } %>
+  <p><strong>Scheduled for:</strong> <%= post.scheduleTime %></p>
+
+  <a href="/">Schedule another</a>
+</body>
+</html>

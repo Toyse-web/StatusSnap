@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WhatsApp Status Scheduler</title>
+  <link rel="stylesheet" href="/css/schedule.css">
+  <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+  <h1>Schedule a Status for your WhatsApp </h1>
+
+  <form action="/schedule" method="POST" enctype="multipart/form-data" id="statusForm">
+    <label>Status Type:</label>
+    <select name="type" id="statusType" required>
+      <option value="text" selected>Text</option>
+      <option value="image">Image</option>
+      <option value="video">Video</option>
+    </select>
+
+    <!-- Text type -->
+     <div id="textSection">
+      <label>Input a Text</label>
+      <textarea name="caption" placeholder="Type your text..." rows="3" required></textarea>
+     </div>
+
+    <!-- Image Type -->
+     <div id="imageSection" class="hidden">
+      <label>Upload Image</label>
+      <input type="file" name="media" accept="image/*">
+      <label for="Caption"></label>
+      <textarea name="caption" placeholder="Write a caption" rows="2"></textarea>
+     </div>
+    
+    <!-- Video Type -->
+     <div id="videoSection" class="hidden">
+      <label>Upload Video</label>
+      <input type="file" name="media" accept="video/*">
+      <label>Caption</label>
+      <textarea name="caption" placeholder="Write a caption" rows="2"></textarea>
+     </div>
+
+    <label>Schedule Time:</label>
+    <input type="datetime-local" name="scheduleTime" required>
+
+    <button type="submit">Schedule</button>
+  </form>
+
+  <a href="/reminders">View Scheduled Posts</a>
+
+  <script src="/js/schedule.js"></script>
+  <script>
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", async () => {
+        try {
+            const reg = await navigator.serviceWorker.register("/service-worker.js");
+            console.log("SW registered:", reg.scope);
+
+            // Request notification permission
+            if (Notification.permission !== "granted") {
+              await Notification.requestPermission();
+            }
+
+            const response = await fetch("/vapidPublicKey");
+            const vapidPublicKey = await response.text();
+            const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+
+            const existingSub = await req.pushManager.getSubscription();
+            if (!existingSub) {
+              const subscription = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey
+              });
+              console.log("Subscription created:", subscription);
+              await fetch("/subscribe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(subscription)
+              });
+            } else {
+              console.log("Already subscribed:", existingSub.endpoint);
+            }
+        } catch (err) {
+            console.error("Service Worker Error:", err);
+        }
+    });
+}
+
+</script>
+
+</body>
+</html>
