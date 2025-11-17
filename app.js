@@ -53,7 +53,7 @@ if (!vapidPublicKey || !vapidPrivateKey) {
 }
 
 webpush.setVapidDetails(
-  "olayonwatoyib5@gmail.com",
+  "mailto:olayonwatoyib5@gmail.com",
   vapidPublicKey,
   vapidPrivateKey
 )
