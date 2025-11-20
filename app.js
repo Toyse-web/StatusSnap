@@ -219,6 +219,20 @@ app.get("/schedule", (req, res) => {
   res.render("schedule");
 });
 
+app.get("cron-run", async (req, res) => {
+  const now = Date.now();
+  const due = posts.filter(p => new Date(p.scheduleTime).getTime() <= now);
+
+  for (const post of due) {
+    await sendPushNotification(post);
+  }
+
+  // Remove processed jobs
+  posts = posts.filter(p => new Date(p.scheduleTime).getTime() > now);
+
+  res.send("Cron completed");
+});
+
 app.post("/schedule", upload.single("media"), (req, res) => {
   const {caption, scheduleTime, type} = req.body;
   const file = req.file && `/uploads/${req.file.filename}`;
