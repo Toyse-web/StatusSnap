@@ -235,7 +235,7 @@ app.get("/cron-run", async (req, res) => {
     p => new Date(p.scheduleTime).getTime() > now
   );
 
-  res.send("Cron checked at " + Date().toISOString());
+  res.send("Cron checked at " + new Date().toISOString());
 });
 
 app.post("/schedule", upload.single("media"), (req, res) => {
