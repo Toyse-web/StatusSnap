@@ -72,11 +72,13 @@ if (!fs.existsSync(path.dirname(SUBS_FILE))) fs.mkdirSync(path.dirname(SUBS_FILE
 
 function loadSubscription() {
   try {
-    return JSON.parse(fs.readFileSync(SUBS_FILE, "utf8"));
-  } catch {
-    return [];
+    subscriptions = JSON.parse(fs.readFileSync(SUBS_FILE, "utf8"));
+  } catch(e) {
+    subscriptions = [];
   }
 }
+
+loadSubscription();
 
 function saveSubscription(arr) {
   fs.writeFileSync(SUBS_FILE, JSON.stringify(arr, null, 2));
@@ -108,13 +110,26 @@ app.get("/test-push", async (req, res) => {
   }
 });
 
+// Store subscription when user subscribes
+global.subscription = null;
+app.post("/subscribe", (req, res) => {
+  global.subscription = req.body;
+  res.json({message: "Subscription saved!"});
+});
+
 
 // Send push notification
 async function sendPushNotification(post) {
+  if (!global.subscription) {
+    console.log("No subscription saved!");
+    return;
+  }
+
   const payload = JSON.stringify({
     title: "Hey, It's time to post your Scheduled WhatsApp Status!",
-    body: post.caption || "Open Whatsapp to post your scheduled status.",
-    data: {caption: post.caption},
+    body: post.caption,
+    type: post.type,
+    file: post.file,
   });
 
   const results = await Promise.allSettled(subscriptions.map(sub => 
