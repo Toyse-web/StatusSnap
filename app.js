@@ -84,8 +84,6 @@ function saveSubscription(arr) {
   fs.writeFileSync(SUBS_FILE, JSON.stringify(arr, null, 2));
 }
 
-subscriptions = loadSubscription();
-
 // Store push subscription from browser
 app.post("/subscribe", (req, res) => {
   const sub = req.body;
@@ -110,17 +108,10 @@ app.get("/test-push", async (req, res) => {
   }
 });
 
-// Store subscription when user subscribes
-global.subscription = null;
-app.post("/subscribe", (req, res) => {
-  global.subscription = req.body;
-  res.json({message: "Subscription saved!"});
-});
-
 
 // Send push notification
 async function sendPushNotification(post) {
-  if (!global.subscription) {
+  if (!subscriptions.length) {
     console.log("No subscription saved!");
     return;
   }
@@ -132,9 +123,13 @@ async function sendPushNotification(post) {
     file: post.file,
   });
 
-  const results = await Promise.allSettled(subscriptions.map(sub => 
-    webpush.sendNotification(sub, payload).catch(err => {throw {err, sub}; })
-  ));
+  const results = await Promise.allSettled(
+    subscriptions.map(sub => 
+    webpush.sendNotification(sub, payload).catch(err => {
+      throw {err, sub};
+    })
+  )
+);
 
   // Remove invalid ones
   let changed = false;
