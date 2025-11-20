@@ -2,14 +2,22 @@ self.addEventListener("install", (e) => self.skipWaiting());
 self.addEventListener("activate", (e) => self.clients.claim());
 
 self.addEventListener("push", (event) => {
-  const data = event.data ? event.data.json() : {};
+let data = {};
+
+try {
+    data = event.data.json();
+} catch (e) {
+    console.error("Push data error:", e);
+}
+
+const title = data.title || "Scheduled Alert";
+const body = data.body || "You have a reminder";
   
-  event.waitUntil(
-    self.registration.showNotification(data.title || "Reminder", {
-        body: data.body || "It's time to post!",
-        icon: "/img/whatsapp.png",
-        data
-    })
+event.waitUntil(
+self.registration.showNotification(title, {
+    body,
+    icon: "/img/whatsapp.png",
+})
 );
 });
 
