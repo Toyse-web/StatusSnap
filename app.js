@@ -219,18 +219,23 @@ app.get("/schedule", (req, res) => {
   res.render("schedule");
 });
 
-app.get("cron-run", async (req, res) => {
+app.get("/cron-run", async (req, res) => {
   const now = Date.now();
-  const due = posts.filter(p => new Date(p.scheduleTime).getTime() <= now);
+  const duePosts = posts.filter(
+    p => new Date(p.scheduleTime).getTime() <= now
+  );
 
-  for (const post of due) {
+  for (const post of duePosts) {
+    console.log("Sending scheduled notification:", post.caption);
     await sendPushNotification(post);
   }
 
   // Remove processed jobs
-  posts = posts.filter(p => new Date(p.scheduleTime).getTime() > now);
+  posts = posts.filter(
+    p => new Date(p.scheduleTime).getTime() > now
+  );
 
-  res.send("Cron completed");
+  res.send("Cron checked at " + Date().toISOString());
 });
 
 app.post("/schedule", upload.single("media"), (req, res) => {
