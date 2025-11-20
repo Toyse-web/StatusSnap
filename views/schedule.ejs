@@ -64,7 +64,7 @@ if ("serviceWorker" in navigator) {
             const vapidPublicKey = await response.text();
             const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
 
-            const existingSub = await req.pushManager.getSubscription();
+            const existingSub = await reg.pushManager.getSubscription();
             if (!existingSub) {
               const subscription = await reg.pushManager.subscribe({
                 userVisibleOnly: true,
